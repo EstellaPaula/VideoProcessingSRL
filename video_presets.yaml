@@ -1,0 +1,27 @@
+#presets for video and audio
+"-c:v":
+  copy:
+  libx264:
+    "-preset":
+      - "ignore"
+      - "ultrafast"
+      - "superfast"
+      - "veryfast"
+      - "faster"
+      - "fast"
+      - "medium"
+      - "slow"
+      - "slower"
+      - "veryslow"
+    "-tune":
+      - "ignore"
+      - "film"
+      - "animation"
+      - "grain"
+      - "stillimage"
+      - "zerolatency"
+      - "medium"
+      - "slow"
+
+
+    
