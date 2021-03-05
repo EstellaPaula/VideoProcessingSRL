@@ -1,7 +1,9 @@
 import subprocess, os
 import PySimpleGUI as sg
 import yaml
+import json
 
+# functions to interact with user (may change)
 def describe_list(list_name, list_values):
     print("Options for", list_name, ":")
     for i in range(len(list_values)):
@@ -76,14 +78,41 @@ def get_transcode_params(in_file, out_file, vid_pres_file, aud_pres_file, verbos
     afile.close()
     return [in_file, out_file, global_options, input_options, output_options]
 
+# implement command :
+# ffprobe -loglevel error -select_streams v:0 -show_entries packet=pts_time,flags /
+# -of csv=print_section=0 input.mp4 | awk -F',' '/K/ {print $1}' 
+def get_keyframes(in_file):
+    # init command args
+    cmd_1 = "ffprobe -v quiet -loglevel error -select_streams v:0 -show_entries packet=pts_time,flags -of json"
+    args = cmd_1.split() + [in_file]
+    # make a temporary file
+    # call ffprobe and send output to temporary json
+    tmp_json = open("tmp/timestamps.json", "w")
+    subprocess.call(args, stdout = tmp_json)
+    #close temporary file
+    tmp_json.close()
+    # open json and get list of kframes from i-frames
+    k_timestamps = []
+    tmp_json = open("tmp/timestamps.json", "r")
+    json_data = json.load(tmp_json)
+    for frame_data in json_data["packets"]:
+        if frame_data["flags"][0] == 'K':
+            k_timestamps.append(frame_data["pts_time"])
+    #close temporary file
+    tmp_json.close()
+    print(k_timestamps)
+    
+    return k_timestamps
+
 def main():
-    input_file = "in.mp4"
-    output_file = "out.mkv"
+    input_file = "input/in.mp4"
+    output_file = "output/out.mkv"
     video_presets_file = "presets/video_presets.yaml"
     audio_presets_file = "presets/audio_presets.yaml"
 
-    params = get_transcode_params(input_file, output_file, video_presets_file, audio_presets_file)
-    call_ffmpeg(params)
+    # params = get_transcode_params(input_file, output_file, video_presets_file, audio_presets_file)
+    # call_ffmpeg(params)
+    get_keyframes(input_file)
 
 main()
 
