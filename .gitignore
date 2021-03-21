@@ -1,0 +1,4 @@
+input/*.mkv
+tmp/*.mkv
+tmp/*.ffcat
+*.ffcat
