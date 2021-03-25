@@ -1,0 +1,39 @@
+version: "3.8"
+
+services: 
+  rest_api:
+    image: rest_api
+    ports:
+      - 5000:5000
+    environment:
+      FLASK_APP: project/__init__.py
+      FLASK_ENV: development
+      DATABASE_URL: postgresql://admin:secret@db:5432/postgres
+      SQL_HOST: db
+      SQL_PORT: 5432
+      DATABASE: postgres
+    networks:
+      - server_network
+    restart: always
+
+  db:
+    image: postgres:12.2
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: secret
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - server_network
+    ports:
+      - 5432:5432
+
+
+volumes:
+  db-data:
+  pgadmin-data:
+
+networks:
+  db_network:
+  server_network:
