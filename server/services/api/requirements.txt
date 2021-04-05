@@ -2,7 +2,7 @@ Flask
 marshmallow
 flask_marshmallow
 Flask-sqlalchemy
-Flask  
+Flask
 datetime 
 uuid
 PyJWT==1.4.0
