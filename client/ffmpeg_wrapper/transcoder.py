@@ -1,69 +1,46 @@
 from ffmpeg_wrapper import param_call
-import yaml
-# functions to interact with user (may change)
-def describe_list(list_name, list_values):
-    print("Options for", list_name, ":")
-    for i in range(len(list_values)):
-        print(i,": ", list_values[i])
-    return
-def select_from_list(list_name, list_values):
-    describe_list(list_name, list_values)
-    print("Select", list_name, "id:", end=" ")
-    value_id = int(input())
-    if value_id not in range(len(list_values)):
-        print("Warning, id not from list!")
-    return list_values[value_id]
-# get codec params
-def get_codec_options(vid_pres_file = "presets/video_presets.yaml", aud_pres_file = "presets/audio_presets.yaml"):
-    # open yaml files and get presets
-    vfile = open(vid_pres_file, "r")
-    afile = open(aud_pres_file, "r")
-    video_presets = yaml.full_load(vfile)
-    audio_presets = yaml.full_load(afile)
-    # get video codec
-    output_options = ["-c:v"]
-    codecs = video_presets["-c:v"]
-    codec_list = list(codecs.keys())
-    codec = select_from_list("video codec", codec_list)
-    output_options += [codec]
-    # get video codec settings
-    codec_settings = codecs[codec]
-    if codec_settings:
-        for s_name in codec_settings:
-            setting = codec_settings[s_name]
-            s_value = select_from_list(s_name, setting)
-            if s_value != "ignore":
-                output_options += [s_name, s_value]
-    # get audio codec
-    output_options += ["-c:a"]
-    codecs = audio_presets["-c:a"]
-    codec_list = list(codecs.keys())
-    codec = select_from_list("audio codec", codec_list)
-    output_options += [codec]
-    # get audio codec settings
-    codec_settings = codecs[codec]
-    if codec_settings:
-        for s_name in codec_settings:
-            setting = codec_settings[s_name]
-            s_value = select_from_list(s_name, setting)
-            if s_value != "ignore":
-                output_options += [s_name, s_value]
-    # close yaml files
-    output_options += ["-avoid_negative_ts", "make_zero"]
-    vfile.close()
-    afile.close()
-    return output_options
-# get ffmpeg params for transcode
-def get_params(in_file, out_file, codec_options):
-    # init params 
-    global_options = []
-    input_options = []
-    output_options = codec_options
-    return [in_file, out_file, global_options, input_options, output_options]
+import timeit
+import os
 
-def transcode(in_files, out_files):
-    codec_options = get_codec_options()
-    for i in range(len(in_files)):
-        in_file, out_file = in_files[i], out_files[i]
-        params = get_params(in_file, out_file, codec_options)
-        param_call.call(params)
+class Transcoder():
+    # for better understanding of crf: https://slhck.info/video/2017/02/24/crf-guide.html
+    codec_options = {"copy":["-map_metadata", "0", "-c:v", "copy"],
+                    "x264":["-map_metadata", "0","-c:v", "libx264", "-preset", "slow", "-crf", "17"],
+                    "x265":["-map_metadata", "0","-c:v", "libx265", "-preset", "slow", "-crf", "20"],
+                    "vp9":["-map_metadata", "0","-c:v", "libvpx-vp9", "-crf", "24"],
+                    # for better av1 encoding the user can install ffmpeg to run with SVT-AV1 or rav1e
+                    "av1":["-map_metadata", "0","-c:v", "libaom-av1", "-strict", "-2", "-crf", "24"]
+                    }
+    computing_power = {}
+    codec = None
+    def __init__(self, codec_name):
+        if codec_name not in self.codec_options:
+            print("ERR! %s is not a valid codec!" % codec)
+            return None
+        self.codec = self.codec_options[codec_name]
+        return 
+    
+    def transcode(self, in_file, out_file):
+        # get ffmpeg params
+        global_options = []
+        input_options = []
+        output_options = self.codec + ["-copyts", "-fflags", "+genpts"] 
+        # call ffmpeg
+        params = [in_file, out_file, global_options, input_options, output_options]
+        ret_code = param_call.call(params)
+        return ret_code
+    
+    def get_computing_power(self, test_file, tmp_file = ".tmp/test.mkv"):
+        # record computing power for each codec
+        for codec in self.codec_options:
+            # get file size
+            file_size = os.path.getsize(test_file)
+            # measure how long it takes to transcode
+            start = timeit.default_timer()
+            ok = self.transcode(test_file, tmp_file)
+            finish = timeit.default_timer()
+            # compute power
+            power = file_size / (start - finish)
+            print("%s power: %s", codec, str(power))
+            self.computing_power[codec] = power
+        return self.computing_power
