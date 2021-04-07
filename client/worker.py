@@ -147,7 +147,6 @@ class Worker():
         # close logs
         self.log.close()
         # remove temporary files (use only if workers are on different machines)
-        
         # files = glob.glob(".tmp/worker/received_files/*")
         # for f in files:
         #     os.remove(f)

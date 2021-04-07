@@ -6,6 +6,7 @@ class Messenger():
     # internal variables
     msg_socket = None
     log = None
+    
     # return codes
     OK = 0
     SEND_ERROR = 1
