@@ -13,8 +13,10 @@ class Demuxer():
         output_options = ["-c", "copy", "-vsync", "2", "-map", "0", "-f","segment","-segment_time", str(segment_duration)]
         output_options += ["-segment_list", segment_log, "-reset_timestamps", "1"]
         params = [in_file, out_path + segment_format, global_options, input_options, output_options]
+        
         # call ffmpeg
         ret_code = param_call.call(params)
+        
         # get all segments into one list
         job_files = []
         with open(segment_log, "rt") as s_l:

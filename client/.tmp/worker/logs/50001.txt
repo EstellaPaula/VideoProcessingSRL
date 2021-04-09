@@ -1,0 +1,63 @@
+09-Apr-2021 (13:43:31.048143)|127.0.0.1:50001:50002|BEGIN JOB REQUEST LOOP
+09-Apr-2021 (13:43:31.048369)|127.0.0.1:50001:50002|ASK FOR JOBS
+09-Apr-2021 (13:43:31.048554)|127.0.0.1:50001:50002|RECEIVING 1 FILE:
+09-Apr-2021 (13:43:31.049480)|127.0.0.1:50001:50002|[RECEIVE FILE] File size received successfully!
+09-Apr-2021 (13:43:31.169217)|127.0.0.1:50001:50002|[RECEIVE FILE] File hash received successfully!
+09-Apr-2021 (13:43:31.859164)|127.0.0.1:50001:50002|[RECEIVE FILE] Received file!
+09-Apr-2021 (13:43:31.859209)|127.0.0.1:50001:50002|[RECEIVE FILE] Computing hash!
+09-Apr-2021 (13:43:32.010035)|127.0.0.1:50001:50002|[RECEIVE FILE] Sender hash and receiver hash match!
+09-Apr-2021 (13:43:32.010280)|127.0.0.1:50001:50002|RECEIVED 1 FILE: .tmp/worker/received_files/segment-0001.mkv
+09-Apr-2021 (13:43:32.010337)|127.0.0.1:50001:50002|TRANSCODING 1 FILE: .tmp/worker/received_files/segment-0001.mkv
+09-Apr-2021 (13:44:14.861104)|127.0.0.1:50001:50002|SENDING 1 FILE: .tmp/worker/files_to_send/segment-0001.mkv
+09-Apr-2021 (13:44:14.861301)|127.0.0.1:50001:50002|[SEND FILE] File name sent successfully!
+09-Apr-2021 (13:44:14.861438)|127.0.0.1:50001:50002|[SEND FILE] File size sent successfully!
+09-Apr-2021 (13:44:14.866445)|127.0.0.1:50001:50002|[SEND FILE] File hash sent successfully!
+09-Apr-2021 (13:44:14.868094)|127.0.0.1:50001:50002|[SEND FILE] Waiting for receiver hash confirmation!
+09-Apr-2021 (13:44:14.884322)|127.0.0.1:50001:50002|[SEND FILE] Sender and receiver hashes match! File sent successfully!
+09-Apr-2021 (13:44:14.884428)|127.0.0.1:50001:50002|ASK FOR JOBS
+09-Apr-2021 (13:44:14.884565)|127.0.0.1:50001:50002|RECEIVING 1 FILE:
+09-Apr-2021 (13:44:14.932248)|127.0.0.1:50001:50002|[RECEIVE FILE] File size received successfully!
+09-Apr-2021 (13:44:15.031106)|127.0.0.1:50001:50002|[RECEIVE FILE] File hash received successfully!
+09-Apr-2021 (13:44:15.355863)|127.0.0.1:50001:50002|[RECEIVE FILE] Received file!
+09-Apr-2021 (13:44:15.355919)|127.0.0.1:50001:50002|[RECEIVE FILE] Computing hash!
+09-Apr-2021 (13:44:15.452596)|127.0.0.1:50001:50002|[RECEIVE FILE] Sender hash and receiver hash match!
+09-Apr-2021 (13:44:15.452758)|127.0.0.1:50001:50002|RECEIVED 1 FILE: .tmp/worker/received_files/segment-0004.mkv
+09-Apr-2021 (13:44:15.452825)|127.0.0.1:50001:50002|TRANSCODING 1 FILE: .tmp/worker/received_files/segment-0004.mkv
+09-Apr-2021 (13:44:49.425441)|127.0.0.1:50001:50002|SENDING 1 FILE: .tmp/worker/files_to_send/segment-0004.mkv
+09-Apr-2021 (13:44:49.425594)|127.0.0.1:50001:50002|[SEND FILE] File name sent successfully!
+09-Apr-2021 (13:44:49.467939)|127.0.0.1:50001:50002|[SEND FILE] File size sent successfully!
+09-Apr-2021 (13:44:49.472119)|127.0.0.1:50001:50002|[SEND FILE] File hash sent successfully!
+09-Apr-2021 (13:44:49.477311)|127.0.0.1:50001:50002|[SEND FILE] Waiting for receiver hash confirmation!
+09-Apr-2021 (13:44:49.493074)|127.0.0.1:50001:50002|[SEND FILE] Sender and receiver hashes match! File sent successfully!
+09-Apr-2021 (13:44:49.493163)|127.0.0.1:50001:50002|ASK FOR JOBS
+09-Apr-2021 (13:44:49.493280)|127.0.0.1:50001:50002|RECEIVING 1 FILE:
+09-Apr-2021 (13:44:49.536244)|127.0.0.1:50001:50002|[RECEIVE FILE] File size received successfully!
+09-Apr-2021 (13:44:49.638578)|127.0.0.1:50001:50002|[RECEIVE FILE] File hash received successfully!
+09-Apr-2021 (13:44:50.053435)|127.0.0.1:50001:50002|[RECEIVE FILE] Received file!
+09-Apr-2021 (13:44:50.053491)|127.0.0.1:50001:50002|[RECEIVE FILE] Computing hash!
+09-Apr-2021 (13:44:50.154063)|127.0.0.1:50001:50002|[RECEIVE FILE] Sender hash and receiver hash match!
+09-Apr-2021 (13:44:50.154228)|127.0.0.1:50001:50002|RECEIVED 1 FILE: .tmp/worker/received_files/segment-0007.mkv
+09-Apr-2021 (13:44:50.154270)|127.0.0.1:50001:50002|TRANSCODING 1 FILE: .tmp/worker/received_files/segment-0007.mkv
+09-Apr-2021 (13:45:23.959052)|127.0.0.1:50001:50002|SENDING 1 FILE: .tmp/worker/files_to_send/segment-0007.mkv
+09-Apr-2021 (13:45:23.959231)|127.0.0.1:50001:50002|[SEND FILE] File name sent successfully!
+09-Apr-2021 (13:45:23.999914)|127.0.0.1:50001:50002|[SEND FILE] File size sent successfully!
+09-Apr-2021 (13:45:24.003444)|127.0.0.1:50001:50002|[SEND FILE] File hash sent successfully!
+09-Apr-2021 (13:45:24.006004)|127.0.0.1:50001:50002|[SEND FILE] Waiting for receiver hash confirmation!
+09-Apr-2021 (13:45:24.019214)|127.0.0.1:50001:50002|[SEND FILE] Sender and receiver hashes match! File sent successfully!
+09-Apr-2021 (13:45:24.019299)|127.0.0.1:50001:50002|ASK FOR JOBS
+09-Apr-2021 (13:45:24.019741)|127.0.0.1:50001:50002|RECEIVING 1 FILE:
+09-Apr-2021 (13:45:24.060241)|127.0.0.1:50001:50002|[RECEIVE FILE] File size received successfully!
+09-Apr-2021 (13:45:24.061608)|127.0.0.1:50001:50002|[RECEIVE FILE] File hash received successfully!
+09-Apr-2021 (13:45:24.069140)|127.0.0.1:50001:50002|[RECEIVE FILE] Received file!
+09-Apr-2021 (13:45:24.069196)|127.0.0.1:50001:50002|[RECEIVE FILE] Computing hash!
+09-Apr-2021 (13:45:24.070832)|127.0.0.1:50001:50002|[RECEIVE FILE] Sender hash and receiver hash match!
+09-Apr-2021 (13:45:24.071013)|127.0.0.1:50001:50002|RECEIVED 1 FILE: .tmp/worker/received_files/segment-0009.mkv
+09-Apr-2021 (13:45:24.071059)|127.0.0.1:50001:50002|TRANSCODING 1 FILE: .tmp/worker/received_files/segment-0009.mkv
+09-Apr-2021 (13:45:25.268990)|127.0.0.1:50001:50002|SENDING 1 FILE: .tmp/worker/files_to_send/segment-0009.mkv
+09-Apr-2021 (13:45:25.269148)|127.0.0.1:50001:50002|[SEND FILE] File name sent successfully!
+09-Apr-2021 (13:45:25.269281)|127.0.0.1:50001:50002|[SEND FILE] File size sent successfully!
+09-Apr-2021 (13:45:25.269739)|127.0.0.1:50001:50002|[SEND FILE] File hash sent successfully!
+09-Apr-2021 (13:45:25.274594)|127.0.0.1:50001:50002|[SEND FILE] Waiting for receiver hash confirmation!
+09-Apr-2021 (13:45:25.276853)|127.0.0.1:50001:50002|[SEND FILE] Sender and receiver hashes match! File sent successfully!
+09-Apr-2021 (13:45:25.276911)|127.0.0.1:50001:50002|ASK FOR JOBS
+09-Apr-2021 (13:45:25.277395)|127.0.0.1:50001:50002|NO MORE JOBS! CLOSING!

@@ -17,7 +17,10 @@ class Log():
     
     def write(self, msg):
         now = str(datetime.datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)"))
-        log_entry = now + " "+ self.host + ":" + str(self.msg_port) + ":" + str(self.file_port) + " " + msg + "\n"
+        log_entry = "{timestamp}|{host}:{mport}:{fport}|{msg}\n".format(
+            timestamp=now, host = self.host, mport = self.msg_port, 
+            fport = self.file_port, msg= msg)
+        
         self.open_log_file.write(log_entry)
         
         # unbuffered writing, to capture moments of failure
