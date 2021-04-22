@@ -1,6 +1,6 @@
 import socket, select
 from peer_to_peer import message, logger
-import progressbar
+# import progressbar
 import os, sys
 import hashlib
 
@@ -21,12 +21,29 @@ class FileTransfer():
     HASHES_DIFFER_ERROR = 6
 
     def __init__(self, file_s, mssngr, file_log):
+        """
+            Required fields: file_s, mssngr, file_log
+            Optional fields: none
+
+            Create a FileTransfer entity using a socket for files,
+            a messenger for exchanging "protocol" information and
+            a logger
+        """
+
         self.file_socket = file_s
         self.messenger = mssngr
         self.log = file_log
         return
 
     def get_md5_hash(self, file_path):
+        """
+            Required fields: file_path
+            Optional fields: none
+            Returns: str
+
+            Returns hash of a file in hexa
+        """
+
         hasher = hashlib.md5()
         with open(file_path, 'rb') as afile:
             buf = afile.read()
@@ -34,6 +51,18 @@ class FileTransfer():
         return hasher.hexdigest()
 
     def send(self,file_path,buffer_size = 16384):
+        """
+            Required fields: file_path
+            Optional fields: buffer_size
+            Returns: ret_code, op_state
+            Return codes: FILE_NAME_ERROR, FILE_SIZE_ERROR, FILE_HASH_ERROR,
+            SEND_ERROR, HASHES_DIFFER_ERROR, OK
+
+            Sends the file name, checks if send was succesful, sends file
+            size, checks if succesful, sends file size, check if succesful,
+            sends file, and wait to see if recv hash matches own hash 
+        """
+
         # get file name
         file_name = file_path.split("/")[-1]
         
@@ -83,6 +112,20 @@ class FileTransfer():
 
     # returns the name of the received file
     def receive(self, file_path, buffer_size = 16384):
+        """
+            Required fields: file_path
+            Optional fields: buffer_size
+            Returns: ret_code, op_state
+            Return codes: FILE_NAME_ERROR, FILE_SIZE_ERROR, FILE_HASH_ERROR,
+            RECEIVE_ERROR, HASHES_DIFFER_ERROR, OK
+
+            Receives file name, check if ok, receive file size, check if ok,
+            receive file hash, check if ok, receive file, compute hash and
+            check if ok. Notify sender if ok.
+
+            Files sizes and network conditions might impose adjusting buffer_size
+        """
+
         # receive file name
         ok, file_name = self.messenger.receive_with_check()
         if ok != self.messenger.OK:
@@ -105,28 +148,28 @@ class FileTransfer():
         self.log.write("[RECEIVE FILE] File hash received successfully!")
         with open(file_path + file_name, "wb") as afile:
             # set widgets for progress bar
-            widgets=[
-            ' [', progressbar.FormatLabel("Rcv_file " + file_name), '] ',
-            progressbar.Bar(),
-            progressbar.widgets.AnimatedMarker(),
-            ' (', progressbar.AdaptiveETA(), ') ',
-            ' (', progressbar.AdaptiveTransferSpeed(), ') ',
-            ]
-            with progressbar.ProgressBar(max_value = file_size, widgets=widgets) as bar:
-                received = 0
-                while received < file_size:
-                    # try to receive data
-                    try:
-                        data = self.file_socket.recv(buffer_size)
-                    except socket.error as error_msg:
-                        self.log.write("[FILE_RCV] Error receiving data: " + error_msg)
-                        return self.RECEIVE_ERROR, "file socket error"
-                    if data:
-                        afile.write(data)
-                        received += len(data)
-                        bar.update(received)
-                    else:
-                        break
+            # widgets=[
+            # ' [', progressbar.FormatLabel("Rcv_file " + file_name), '] ',
+            # progressbar.Bar(),
+            # progressbar.widgets.AnimatedMarker(),
+            # ' (', progressbar.AdaptiveETA(), ') ',
+            # ' (', progressbar.AdaptiveTransferSpeed(), ') ',
+            # ]
+            # with progressbar.ProgressBar(max_value = file_size, widgets=widgets) as bar:
+            received = 0
+            while received < file_size:
+                # try to receive data
+                try:
+                    data = self.file_socket.recv(buffer_size)
+                except socket.error as error_msg:
+                    self.log.write("[FILE_RCV] Error receiving data: " + error_msg)
+                    return self.RECEIVE_ERROR, "file socket error"
+                if data:
+                    afile.write(data)
+                    received += len(data)
+                    # bar.update(received)
+                else:
+                    break
         self.log.write("[RECEIVE FILE] Received file!")
         # check received file hash
         self.log.write("[RECEIVE FILE] Computing hash!")
@@ -142,6 +185,16 @@ class FileTransfer():
     
     # set a new timeout for file channel
     def set_timeout(self, timeout = 120):
+        """
+            Required fields: timeout
+            Optional fields: none
+            Returns: nothing
+            Return codes: none
+
+            Update timeout for file_socket, and,
+            subsequently, for FileTransfer entity
+        """
+        
         self.file_socket.settimeout(timeout)
         return
         

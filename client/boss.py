@@ -9,6 +9,7 @@ from ffmpeg_wrapper.demuxer import Demuxer
 from ffmpeg_wrapper.muxer import Muxer
 import sys, os, glob
 import time
+from pathlib import Path
 
 class Boss():
     # machine info 
@@ -37,7 +38,14 @@ class Boss():
         
 
     def __init__(self, h, w, in_fp, out_fp, codec="copy",
-    snd_fp = ".tmp/boss/files_to_send/", rcv_fp = ".tmp/boss/received_files/", log_fp = ".tmp/boss/logs/"):
+    snd_fp = "/tmp/boss/files_to_send/", rcv_fp = "/tmp/boss/received_files/", log_fp = "logs/boss/"):
+        """
+            Required fields: boss_host, workers = [[host, msg_port, file_port]], in_file, out_file, codec
+            Optional fields: send_file_path, receive_file_path, log_file_path
+
+            Creates a boss, prepare the job files and create a job thread safe queue
+        """
+
         # init machine metadata
         self.host = h
         self.workers = w
@@ -47,6 +55,10 @@ class Boss():
         self.in_file_path = in_fp
         self.out_file_path = out_fp
         
+        # init temp paths if they don't exist
+        Path(snd_fp).mkdir(parents=True, exist_ok=True)
+        Path(rcv_fp).mkdir(parents=True, exist_ok=True)
+
         # init job info
         self.codec = codec
         self.job_send_path = snd_fp
@@ -55,7 +67,7 @@ class Boss():
         # init demuxer and get job files/audio
         demuxer = Demuxer()
         ok, job_files = demuxer.split_video(in_file = self.in_file_path, out_path = self.job_send_path, segment_duration = 10)
-        ok, self.audio_rip = demuxer.rip_audio(in_file = self.in_file_path, out_path = rcv_fp)
+        # ok, self.audio_rip = demuxer.rip_audio(in_file = self.in_file_path, out_path = rcv_fp)
         
         # add job files to thread safe queue
         for jf in job_files:
@@ -77,6 +89,16 @@ class Boss():
 
     # logic for working with 1 worker
     def work_with(self, worker_id):
+        """
+            Required fields: worker_id
+            Optional fields: none
+
+            Connect to worker and start a communication thread.
+            The worker will keep asking for jobs from the queue
+            and it will be told the work is over when there are no jobs left.
+            If anything breaks with a job, the job is added back to the queue
+            and the thread will be closed
+        """
         # check for worker_id out of reange
         if worker_id > self.worker_count:
             print("Worker id out of range!")
@@ -93,8 +115,8 @@ class Boss():
         try:
             msg_s.connect((w_host, w_msg_port))
         except socket.error as error_msg:
-            print("Caught exception socket.error for messages: %s" % error_msg)
-            log.write("Caught exception socket.error for messages: " + error_msg)
+            print("Caught exception socket.error for messages: %s" % str(error_msg))
+            log.write("Caught exception socket.error for messages: %s" % str(error_msg))
             return
         
         # wait before connecting for files (avoid race condition)
@@ -104,8 +126,8 @@ class Boss():
         try:
             file_s.connect((w_host, w_file_port))
         except socket.error as error_msg:
-            print("Caught exception socket.error for files: %s" % error_msg)
-            log.write("Caught exception socket.error for files: " + error_msg)
+            print("Caught exception socket.error for files: %s" % str(error_msg))
+            log.write("Caught exception socket.error for files: %s" % str(error_msg))
             return
         
         # init msg_channel and file_channel
@@ -148,7 +170,7 @@ class Boss():
 
                     # receive transcoded file
                     log.write("RECEIVING 1 TRANSCODED FILE: ")
-                    ok, rcv_file = file_channel.receive(".tmp/boss/received_files/")
+                    ok, rcv_file = file_channel.receive(self.job_receive_path)
                     if ok != file_channel.OK:
                         # add job back to queue if unsuccesful
                         log.write("Receiving transcoded file failed")
@@ -163,6 +185,15 @@ class Boss():
                     return
                 
     def run(self):
+        """
+            Required fields: none
+            Optional fields: none
+            Returns: process_time (float), equiv_processing_power (float)
+
+            Create threads for all workers and work with them. When done,
+            check how long everything took and compute equivalent processing
+            power
+        """
         worker_threads = [threading.Thread(target=self.work_with, args=[worker_id]) for worker_id in range(self.worker_count)]
         for worker_thread in worker_threads:
             worker_thread.start()
@@ -171,6 +202,13 @@ class Boss():
         return
 
     def close(self):
+        """
+            Required fields: none
+            Optional fields: none
+            Returns: nothing
+
+            Close sockets and delete temporary files
+        """
         # close channel sockets
         for s in self.msg_sockets:
             s.close()
@@ -180,26 +218,25 @@ class Boss():
         for log in self.logs:
             log.close()
         # remove temporary files
-        files = glob.glob(".tmp/boss/received_files/*")
+        files = glob.glob("/tmp/boss/received_files/*")
         for f in files:
             os.remove(f)
-        files = glob.glob(".tmp/boss/files_to_send/*")
+        files = glob.glob("/tmp/boss/files_to_send/*")
         for f in files:
             os.remove(f)
 
 def main():
     host = "127.0.0.1"
-    workers = [["127.0.0.1", 50001, 50002], ["127.0.0.1", 50003, 50004], ["127.0.0.1", 50005, 50006]]
+    workers = [["127.0.0.1", 50001, 50002]]
     in_file_path = "tests/input/x264.mkv"
     out_file_path = "tests/output/out.mkv"
     out_file_path_with_audio = "tests/output/out_with_audio.mkv"
-    codec = "vp9"
+    codec = "x264"
 
     boss = Boss(host, workers, in_file_path, out_file_path, codec=codec)
     boss.run()
     muxer = Muxer()
-    muxer.merge(out_file_path, ".tmp/boss/received_files/job_files.txt")
-    # muxer.add_audio(out_file_path, ".tmp/boss/received_files/audio.wav", out_file_path_with_audio)
+    muxer.merge(out_file_path, "/tmp/boss/received_files/job_files.txt")
     boss.close()
 
     return

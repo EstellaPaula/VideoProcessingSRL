@@ -15,11 +15,33 @@ class Messenger():
     RECEIVE_CHECK_ERROR = 4
 
     def __init__(self, msg_s, msg_log):
+        """
+            Required fields: msg_s, msg_log
+            Optional fields: none
+
+            Create a mesenger that uses a socket and a logger
+        """
+
         self.msg_socket = msg_s
         self.log = msg_log   
         return
 
     def send(self, msg, buffer_size = 1024):
+        """
+            Required fields: msg
+            Optional fields: buffer_size
+            Returns: ret_code and op state
+            Return codes: OK, SEND_ERROR 
+
+            Sends a message using the msg_socket. Sendall is a high level
+            function, so its behaviour might vary depending on the platform.
+            Due to the use of sendall, buffer_size is not really needed,
+            but it's kept for homogenous signatures across functions.
+            
+            If needed, sendall will be replaced with send, and buffer_size
+            will stop being obsolete
+        """
+
         # try to send all data
         try:
             self.msg_socket.sendall(bytes(msg.encode()))
@@ -29,6 +51,17 @@ class Messenger():
             return self.SEND_ERROR, str(error_msg)
 
     def receive(self, buffer_size = 1024):
+        """
+            Required fields: none
+            Optional fields: buffer_size
+            Returns: ret_code, message
+            Return codes: OK, RECEIVE_ERROR
+
+            Receives a message from msg_socket. Messages are supposed
+            to be small, so it shouldn't be needed to change the
+            recommended tcp buffer_size of 1024 
+        """
+
         # try to receive data
         try:
             recv_data = self.msg_socket.recv(buffer_size)
@@ -40,6 +73,16 @@ class Messenger():
             return self.RECEIVE_ERROR, str(error_msg)
 
     def send_with_check(self, msg, buffer_size = 1024):
+        """
+            Required fields: msg
+            Optional fields: buffer_size
+            Returns: ret_code, op_state
+            Return codes: SEND_CHECK_ERROR, RECEIVE_ERROR
+
+            Sends a message, wait for receiver to send back what they
+            received and check if contents are identical.  
+        """
+
         # send msg, await response
         ret1, msg1 = self.send(msg, buffer_size)
         if ret1 != self.OK:
@@ -58,6 +101,18 @@ class Messenger():
             return self.SEND_CHECK_ERROR, "send_check_err"
 
     def receive_with_check(self, buffer_size = 1024):
+        """
+            Required fields: none
+            Optional fields: buffer_size
+            Returns: ret_code, message
+            Return codes: RECEIVE_CHECK_ERROR, RECEIVE_ERROR
+
+            Receive a message and send back its content to sender,
+            so that they can perform a check. Messages are supposed
+            to be small, so it shouldn't be needed to change the
+            recommended tcp buffer_size of 1024  
+        """
+
         # await msg and send it back
         ret1, msg1 = self.receive(buffer_size)
         
@@ -77,5 +132,15 @@ class Messenger():
     
     # set a new timeout for msg channel
     def set_timeout(self, timeout = 120):
+        """
+            Required fields: timeout
+            Optional fields: none
+            Returns: nothing
+            Return codes: none
+
+            Update timeout for msg_socket, and,
+            subsequently, for Messenger 
+        """
+        
         self.msg_socket.settimeout(timeout)
         return

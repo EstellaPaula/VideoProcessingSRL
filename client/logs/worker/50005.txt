@@ -1,0 +1,78 @@
+19-Apr-2021 (09:50:45.001242)|127.0.0.1:40254:40254|BEGIN JOB REQUEST LOOP
+19-Apr-2021 (09:50:45.001287)|127.0.0.1:40254:40254|ASK FOR JOBS
+19-Apr-2021 (09:50:45.001370)|127.0.0.1:40254:40254|RECEIVING 1 FILE:
+19-Apr-2021 (09:50:45.001673)|127.0.0.1:40254:40254|[RECEIVE FILE] File size received successfully!
+19-Apr-2021 (09:50:45.118655)|127.0.0.1:40254:40254|[RECEIVE FILE] File hash received successfully!
+19-Apr-2021 (09:50:45.508737)|127.0.0.1:40254:40254|[RECEIVE FILE] Received file!
+19-Apr-2021 (09:50:45.508797)|127.0.0.1:40254:40254|[RECEIVE FILE] Computing hash!
+19-Apr-2021 (09:50:45.635882)|127.0.0.1:40254:40254|[RECEIVE FILE] Sender hash and receiver hash match!
+19-Apr-2021 (09:50:45.636045)|127.0.0.1:40254:40254|RECEIVED 1 FILE: .tmp/boss/received_files/segment-0001.mkv
+19-Apr-2021 (09:50:45.636082)|127.0.0.1:40254:40254|TRANSCODING 1 FILE: .tmp/boss/received_files/segment-0001.mkv
+19-Apr-2021 (09:51:05.081694)|127.0.0.1:40254:40254|SENDING 1 FILE: .tmp/boss/files_to_send/segment-0001.mkv
+19-Apr-2021 (09:51:05.081855)|127.0.0.1:40254:40254|[SEND FILE] File name sent successfully!
+19-Apr-2021 (09:51:05.082092)|127.0.0.1:40254:40254|[SEND FILE] File size sent successfully!
+19-Apr-2021 (09:51:05.088000)|127.0.0.1:40254:40254|[SEND FILE] File hash sent successfully!
+19-Apr-2021 (09:51:05.089229)|127.0.0.1:40254:40254|[SEND FILE] Waiting for receiver hash confirmation!
+19-Apr-2021 (09:51:05.096246)|127.0.0.1:40254:40254|[SEND FILE] Sender and receiver hashes match! File sent successfully!
+19-Apr-2021 (09:51:05.096327)|127.0.0.1:40254:40254|ASK FOR JOBS
+19-Apr-2021 (09:51:05.096440)|127.0.0.1:40254:40254|RECEIVING 1 FILE:
+19-Apr-2021 (09:51:05.138033)|127.0.0.1:40254:40254|[RECEIVE FILE] File size received successfully!
+19-Apr-2021 (09:51:05.245221)|127.0.0.1:40254:40254|[RECEIVE FILE] File hash received successfully!
+19-Apr-2021 (09:51:05.539284)|127.0.0.1:40254:40254|[RECEIVE FILE] Received file!
+19-Apr-2021 (09:51:05.539326)|127.0.0.1:40254:40254|[RECEIVE FILE] Computing hash!
+19-Apr-2021 (09:51:05.642584)|127.0.0.1:40254:40254|[RECEIVE FILE] Sender hash and receiver hash match!
+19-Apr-2021 (09:51:05.642741)|127.0.0.1:40254:40254|RECEIVED 1 FILE: .tmp/boss/received_files/segment-0003.mkv
+19-Apr-2021 (09:51:05.642770)|127.0.0.1:40254:40254|TRANSCODING 1 FILE: .tmp/boss/received_files/segment-0003.mkv
+19-Apr-2021 (09:51:25.386467)|127.0.0.1:40254:40254|SENDING 1 FILE: .tmp/boss/files_to_send/segment-0003.mkv
+19-Apr-2021 (09:51:25.386591)|127.0.0.1:40254:40254|[SEND FILE] File name sent successfully!
+19-Apr-2021 (09:51:25.426903)|127.0.0.1:40254:40254|[SEND FILE] File size sent successfully!
+19-Apr-2021 (09:51:25.432692)|127.0.0.1:40254:40254|[SEND FILE] File hash sent successfully!
+19-Apr-2021 (09:51:25.433748)|127.0.0.1:40254:40254|[SEND FILE] Waiting for receiver hash confirmation!
+19-Apr-2021 (09:51:25.441959)|127.0.0.1:40254:40254|[SEND FILE] Sender and receiver hashes match! File sent successfully!
+19-Apr-2021 (09:51:25.442032)|127.0.0.1:40254:40254|ASK FOR JOBS
+19-Apr-2021 (09:51:25.442153)|127.0.0.1:40254:40254|RECEIVING 1 FILE:
+19-Apr-2021 (09:51:25.484068)|127.0.0.1:40254:40254|[RECEIVE FILE] File size received successfully!
+19-Apr-2021 (09:51:25.601006)|127.0.0.1:40254:40254|[RECEIVE FILE] File hash received successfully!
+19-Apr-2021 (09:51:25.922780)|127.0.0.1:40254:40254|[RECEIVE FILE] Received file!
+19-Apr-2021 (09:51:25.922828)|127.0.0.1:40254:40254|[RECEIVE FILE] Computing hash!
+19-Apr-2021 (09:51:26.029819)|127.0.0.1:40254:40254|[RECEIVE FILE] Sender hash and receiver hash match!
+19-Apr-2021 (09:51:26.029979)|127.0.0.1:40254:40254|RECEIVED 1 FILE: .tmp/boss/received_files/segment-0005.mkv
+19-Apr-2021 (09:51:26.030031)|127.0.0.1:40254:40254|TRANSCODING 1 FILE: .tmp/boss/received_files/segment-0005.mkv
+19-Apr-2021 (09:51:46.787107)|127.0.0.1:40254:40254|SENDING 1 FILE: .tmp/boss/files_to_send/segment-0005.mkv
+19-Apr-2021 (09:51:46.787680)|127.0.0.1:40254:40254|[SEND FILE] File name sent successfully!
+19-Apr-2021 (09:51:46.827977)|127.0.0.1:40254:40254|[SEND FILE] File size sent successfully!
+19-Apr-2021 (09:51:46.837658)|127.0.0.1:40254:40254|[SEND FILE] File hash sent successfully!
+19-Apr-2021 (09:51:46.839535)|127.0.0.1:40254:40254|[SEND FILE] Waiting for receiver hash confirmation!
+19-Apr-2021 (09:51:46.858288)|127.0.0.1:40254:40254|[SEND FILE] Sender and receiver hashes match! File sent successfully!
+19-Apr-2021 (09:51:46.858418)|127.0.0.1:40254:40254|ASK FOR JOBS
+19-Apr-2021 (09:51:46.859790)|127.0.0.1:40254:40254|RECEIVING 1 FILE:
+19-Apr-2021 (09:51:46.900236)|127.0.0.1:40254:40254|[RECEIVE FILE] File size received successfully!
+19-Apr-2021 (09:51:47.004826)|127.0.0.1:40254:40254|[RECEIVE FILE] File hash received successfully!
+19-Apr-2021 (09:51:47.590474)|127.0.0.1:40254:40254|[RECEIVE FILE] Received file!
+19-Apr-2021 (09:51:47.590531)|127.0.0.1:40254:40254|[RECEIVE FILE] Computing hash!
+19-Apr-2021 (09:51:47.695477)|127.0.0.1:40254:40254|[RECEIVE FILE] Sender hash and receiver hash match!
+19-Apr-2021 (09:51:47.695700)|127.0.0.1:40254:40254|RECEIVED 1 FILE: .tmp/boss/received_files/segment-0007.mkv
+19-Apr-2021 (09:51:47.695848)|127.0.0.1:40254:40254|TRANSCODING 1 FILE: .tmp/boss/received_files/segment-0007.mkv
+19-Apr-2021 (09:52:05.601273)|127.0.0.1:40254:40254|SENDING 1 FILE: .tmp/boss/files_to_send/segment-0007.mkv
+19-Apr-2021 (09:52:05.601448)|127.0.0.1:40254:40254|[SEND FILE] File name sent successfully!
+19-Apr-2021 (09:52:05.641911)|127.0.0.1:40254:40254|[SEND FILE] File size sent successfully!
+19-Apr-2021 (09:52:05.646155)|127.0.0.1:40254:40254|[SEND FILE] File hash sent successfully!
+19-Apr-2021 (09:52:05.646902)|127.0.0.1:40254:40254|[SEND FILE] Waiting for receiver hash confirmation!
+19-Apr-2021 (09:52:05.652323)|127.0.0.1:40254:40254|[SEND FILE] Sender and receiver hashes match! File sent successfully!
+19-Apr-2021 (09:52:05.652389)|127.0.0.1:40254:40254|ASK FOR JOBS
+19-Apr-2021 (09:52:05.652523)|127.0.0.1:40254:40254|RECEIVING 1 FILE:
+19-Apr-2021 (09:52:05.694024)|127.0.0.1:40254:40254|[RECEIVE FILE] File size received successfully!
+19-Apr-2021 (09:52:05.694957)|127.0.0.1:40254:40254|[RECEIVE FILE] File hash received successfully!
+19-Apr-2021 (09:52:05.701199)|127.0.0.1:40254:40254|[RECEIVE FILE] Received file!
+19-Apr-2021 (09:52:05.701249)|127.0.0.1:40254:40254|[RECEIVE FILE] Computing hash!
+19-Apr-2021 (09:52:05.702369)|127.0.0.1:40254:40254|[RECEIVE FILE] Sender hash and receiver hash match!
+19-Apr-2021 (09:52:05.702439)|127.0.0.1:40254:40254|RECEIVED 1 FILE: .tmp/boss/received_files/segment-0009.mkv
+19-Apr-2021 (09:52:05.702479)|127.0.0.1:40254:40254|TRANSCODING 1 FILE: .tmp/boss/received_files/segment-0009.mkv
+19-Apr-2021 (09:52:06.704920)|127.0.0.1:40254:40254|SENDING 1 FILE: .tmp/boss/files_to_send/segment-0009.mkv
+19-Apr-2021 (09:52:06.705091)|127.0.0.1:40254:40254|[SEND FILE] File name sent successfully!
+19-Apr-2021 (09:52:06.745927)|127.0.0.1:40254:40254|[SEND FILE] File size sent successfully!
+19-Apr-2021 (09:52:06.746407)|127.0.0.1:40254:40254|[SEND FILE] File hash sent successfully!
+19-Apr-2021 (09:52:06.746715)|127.0.0.1:40254:40254|[SEND FILE] Waiting for receiver hash confirmation!
+19-Apr-2021 (09:52:06.748115)|127.0.0.1:40254:40254|[SEND FILE] Sender and receiver hashes match! File sent successfully!
+19-Apr-2021 (09:52:06.748182)|127.0.0.1:40254:40254|ASK FOR JOBS
+19-Apr-2021 (09:52:06.748653)|127.0.0.1:40254:40254|NO MORE JOBS! CLOSING!
