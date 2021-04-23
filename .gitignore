@@ -1,4 +1,4 @@
-input/*.mkv
-tmp/*.mkv
-tmp/*.ffcat
-*.ffcat
+client/tests/input/*.mkv
+client/tests/output/*.mkv
+client/logs/boss/*.txt
+client/logs/worker/*.txt

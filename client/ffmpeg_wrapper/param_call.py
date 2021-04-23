@@ -38,7 +38,7 @@ def call_multiple_inputs(params, use_global = False, verbose = True):
         Returns: ffmpeg_ret_code
 
         Calls ffmpeg subrpocess dictated by params (multiple input files). The ffmpeg call 
-        signature is ffprobe [global options] [input options] [-i input_file] [output options] output_file
+        signature is ffmpeg [global options] [input options] [-i input_file] [output options] output_file
 
         FFmpeg will try to generate the optimal number of threads, looking at the machine's load
     """
@@ -59,6 +59,8 @@ def call_multiple_inputs(params, use_global = False, verbose = True):
     # call ffmpeg
     completed_process = subprocess.run(args)
     return completed_process.returncode
+
+    
 # call ffprobe
 def call_probe(params, use_global = False, verbose = False):
     """

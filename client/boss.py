@@ -12,6 +12,12 @@ import time
 from pathlib import Path
 
 class Boss():
+    """
+        Required fields: boss_host, workers = [[host, msg_port, file_port]], in_file, out_file, codec
+        Optional fields: send_file_path, receive_file_path, log_file_path
+
+        Creates a boss, prepare the job files and create a job thread safe queue
+    """
     # machine info 
     host = "127.0.0.1"
     workers = []
@@ -35,17 +41,8 @@ class Boss():
     
     # stats info
     
-        
-
     def __init__(self, h, w, in_fp, out_fp, codec="copy",
     snd_fp = "/tmp/boss/files_to_send/", rcv_fp = "/tmp/boss/received_files/", log_fp = "logs/boss/"):
-        """
-            Required fields: boss_host, workers = [[host, msg_port, file_port]], in_file, out_file, codec
-            Optional fields: send_file_path, receive_file_path, log_file_path
-
-            Creates a boss, prepare the job files and create a job thread safe queue
-        """
-
         # init machine metadata
         self.host = h
         self.workers = w
@@ -99,6 +96,7 @@ class Boss():
             If anything breaks with a job, the job is added back to the queue
             and the thread will be closed
         """
+
         # check for worker_id out of reange
         if worker_id > self.worker_count:
             print("Worker id out of range!")
@@ -228,7 +226,7 @@ class Boss():
 def main():
     host = "127.0.0.1"
     workers = [["127.0.0.1", 50001, 50002]]
-    in_file_path = "tests/input/x264.mkv"
+    in_file_path = "tests/input/x264_small.mkv"
     out_file_path = "tests/output/out.mkv"
     out_file_path_with_audio = "tests/output/out_with_audio.mkv"
     codec = "x264"

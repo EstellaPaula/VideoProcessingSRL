@@ -11,6 +11,12 @@ import time
 from pathlib import Path
 
 class Worker():
+    """
+        Required fields: boss_host, worker = [host, msg_port, file_port]
+        Optional fields: receive_file_path, log_file_path
+
+        Creates a worker and binds its sockets
+    """
     # machine info
     host = "0.0.0.0"
     boss_host = "0.0.0.0"
@@ -34,12 +40,6 @@ class Worker():
 
     def __init__(self, b_h, worker, snd_fp = "/tmp/worker/files_to_send/",
      rcv_fp = "/tmp/worker/received_files/", log_file_path = "logs/worker/"):
-        """
-            Required fields: boss_host, worker = [host, msg_port, file_port]
-            Optional fields: receive_file_path, log_file_path
-
-            Creates a worker and binds its sockets
-        """
         # init machine and connection info
         h, msg_p, file_p = worker
         self.host = h
