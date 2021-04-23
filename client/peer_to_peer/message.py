@@ -3,6 +3,13 @@ import sys
 from peer_to_peer import logger
 
 class Messenger():
+    """
+        Required fields: msg_s, msg_log
+        Optional fields: none
+
+        Create a mesenger that uses a socket and a logger
+    """
+
     # internal variables
     msg_socket = None
     log = None
@@ -15,13 +22,6 @@ class Messenger():
     RECEIVE_CHECK_ERROR = 4
 
     def __init__(self, msg_s, msg_log):
-        """
-            Required fields: msg_s, msg_log
-            Optional fields: none
-
-            Create a mesenger that uses a socket and a logger
-        """
-
         self.msg_socket = msg_s
         self.log = msg_log   
         return

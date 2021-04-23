@@ -1,20 +1,20 @@
 import datetime
 
 class Log():
+    """
+        Required fields: host, m_port, f_port, log_file_path
+        Optional fields: none
+        Returns: ret_code, op_state
+
+        Creates a logger that keeps track of everything that
+        happens with host on m_port and f_port
+    """
+
     open_log_file = None
     host = "127.0.0.1"
     msg_port = None
     file_port = None
     def __init__(self, h, m_port, f_port, log_file_path):
-        """
-            Required fields: host, m_port, f_port, log_file_path
-            Optional fields: none
-            Returns: ret_code, op_state
-
-            Creates a logger that keeps track of everything that
-            happens with host on m_port and f_port
-        """
-
         # init log
         self.host = h
         self.msg_port = m_port

@@ -13,7 +13,7 @@ from pathlib import Path
 
 class Boss():
     """
-        Required fields: boss_host, workers = [[host, msg_port, file_port]], in_file, out_file, codec
+        Required fields: boss_host, workers = [[host, msg_port, file_port]], in_file, out_file, codec, segment_duration
         Optional fields: send_file_path, receive_file_path, log_file_path
 
         Creates a boss, prepare the job files and create a job thread safe queue
@@ -41,7 +41,7 @@ class Boss():
     
     # stats info
     
-    def __init__(self, h, w, in_fp, out_fp, codec="copy",
+    def __init__(self, h, w, in_fp, out_fp, codec="copy", s_d = 10,
     snd_fp = "/tmp/boss/files_to_send/", rcv_fp = "/tmp/boss/received_files/", log_fp = "logs/boss/"):
         # init machine metadata
         self.host = h
@@ -58,12 +58,13 @@ class Boss():
 
         # init job info
         self.codec = codec
+        self.segment_duration = s_d
         self.job_send_path = snd_fp
         self.job_receive_path = rcv_fp
         
         # init demuxer and get job files/audio
         demuxer = Demuxer()
-        ok, job_files = demuxer.split_video(in_file = self.in_file_path, out_path = self.job_send_path, segment_duration = 10)
+        ok, job_files = demuxer.split_video(in_file = self.in_file_path, out_path = self.job_send_path, segment_duration = self.segment_duration)
         # ok, self.audio_rip = demuxer.rip_audio(in_file = self.in_file_path, out_path = rcv_fp)
         
         # add job files to thread safe queue
@@ -225,13 +226,14 @@ class Boss():
 
 def main():
     host = "127.0.0.1"
-    workers = [["127.0.0.1", 50001, 50002]]
-    in_file_path = "tests/input/x264_small.mkv"
+    workers = [["127.0.0.1", 50001, 50002], ["127.0.0.1", 50003, 50004], ["127.0.0.1", 50005, 50006], ["127.0.0.1", 50007, 50008]]
+    in_file_path = "tests/input/x264_medium.mkv"
     out_file_path = "tests/output/out.mkv"
     out_file_path_with_audio = "tests/output/out_with_audio.mkv"
-    codec = "x264"
+    codec = "copy"
+    segment_duration = 30
 
-    boss = Boss(host, workers, in_file_path, out_file_path, codec=codec)
+    boss = Boss(host, workers, in_file_path, out_file_path, codec=codec, s_d = segment_duration)
     boss.run()
     muxer = Muxer()
     muxer.merge(out_file_path, "/tmp/boss/received_files/job_files.txt")

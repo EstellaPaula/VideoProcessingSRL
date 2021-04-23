@@ -6,6 +6,15 @@ import hashlib
 
 
 class FileTransfer():
+    """
+        Required fields: file_s, mssngr, file_log
+        Optional fields: none
+
+        Create a FileTransfer entity using a socket for files,
+        a messenger for exchanging "protocol" information and
+        a logger
+    """
+
     # internal variables
     file_socket = None
     messenger = None
@@ -21,15 +30,6 @@ class FileTransfer():
     HASHES_DIFFER_ERROR = 6
 
     def __init__(self, file_s, mssngr, file_log):
-        """
-            Required fields: file_s, mssngr, file_log
-            Optional fields: none
-
-            Create a FileTransfer entity using a socket for files,
-            a messenger for exchanging "protocol" information and
-            a logger
-        """
-
         self.file_socket = file_s
         self.messenger = mssngr
         self.log = file_log
