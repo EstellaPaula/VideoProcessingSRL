@@ -40,19 +40,20 @@ class Worker():
 
     def __init__(self, b_h, worker, snd_fp = "/tmp/worker/files_to_send/",
      rcv_fp = "/tmp/worker/received_files/", log_file_path = "logs/worker/"):
+        # init temp paths if they don't exist
+        Path(log_file_path).mkdir(parents=True, exist_ok=True)
+        Path(snd_fp).mkdir(parents=True, exist_ok=True)
+        Path(rcv_fp).mkdir(parents=True, exist_ok=True)
+
         # init machine and connection info
         h, msg_p, file_p = worker
         self.host = h
         self.boss_host = b_h
         self.msg_port = msg_p
         self.file_port = file_p
-        self.log = Log(h, msg_p, file_p, log_file_path)
-        self.log_file_path = log_file_path
-
-        # init temp paths if they don't exist
-        Path(snd_fp).mkdir(parents=True, exist_ok=True)
-        Path(rcv_fp).mkdir(parents=True, exist_ok=True)
-
+        self.log_file_path = log_file_path + str(self.msg_port) + ".txt"
+        self.log = Log(h, msg_p, file_p, self.log_file_path)
+        
         # init temp info
         self.send_path = snd_fp
         self.receive_path = rcv_fp
@@ -229,12 +230,22 @@ class Worker():
         
 
 def main():
+    # machine infos
     host = "127.0.0.1"
     worker = ["127.0.0.1", int(sys.argv[1]), int(sys.argv[2])]
-    log_file_path = "logs/worker/" + sys.argv[1] + ".txt"
 
-    worker = Worker(host, worker, log_file_path = log_file_path)
+    # where to store temporary files
+    use_tmp_fs = True
+    worker_snd_fp = "/tmp/worker/files_to_send/"
+    worker_rcv_fp = "/tmp/worker/received_files/"
+    log_file_path = "logs/worker/"
+
+    # init worker
+    worker = Worker(host, worker, snd_fp=worker_snd_fp, rcv_fp=worker_rcv_fp,
+    log_file_path = log_file_path)
+    # start work
     worker.work()
+    # close worker
     worker.close()
-    return
+    return 0
 main()

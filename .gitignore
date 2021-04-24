@@ -1,4 +1,6 @@
-client/tests/input/*.mkv
-client/tests/output/*.mkv
-client/logs/boss/*.txt
-client/logs/worker/*.txt
+# exclude test video files
+client/tests
+# exclude logs
+client/logs
+# exclude temporary files
+client/.tmp

@@ -41,8 +41,13 @@ class Boss():
     
     # stats info
     
-    def __init__(self, h, w, in_fp, out_fp, codec="copy", s_d = 10,
+    def __init__(self, h, w, in_fp, out_fp, codec="copy", s_c = 10,
     snd_fp = "/tmp/boss/files_to_send/", rcv_fp = "/tmp/boss/received_files/", log_fp = "logs/boss/"):
+        # init temp and log paths if they don't exist
+        Path(log_fp).mkdir(parents=True, exist_ok=True)
+        Path(snd_fp).mkdir(parents=True, exist_ok=True)
+        Path(rcv_fp).mkdir(parents=True, exist_ok=True)
+
         # init machine metadata
         self.host = h
         self.workers = w
@@ -52,19 +57,15 @@ class Boss():
         self.in_file_path = in_fp
         self.out_file_path = out_fp
         
-        # init temp paths if they don't exist
-        Path(snd_fp).mkdir(parents=True, exist_ok=True)
-        Path(rcv_fp).mkdir(parents=True, exist_ok=True)
-
         # init job info
         self.codec = codec
-        self.segment_duration = s_d
+        self.segment_count = s_c
         self.job_send_path = snd_fp
         self.job_receive_path = rcv_fp
         
         # init demuxer and get job files/audio
         demuxer = Demuxer()
-        ok, job_files = demuxer.split_video(in_file = self.in_file_path, out_path = self.job_send_path, segment_duration = self.segment_duration)
+        ok, job_files = demuxer.split_video(in_file = self.in_file_path, out_path = self.job_send_path, segment_count = self.segment_count)
         # ok, self.audio_rip = demuxer.rip_audio(in_file = self.in_file_path, out_path = rcv_fp)
         
         # add job files to thread safe queue
@@ -217,27 +218,45 @@ class Boss():
         for log in self.logs:
             log.close()
         # remove temporary files
-        files = glob.glob("/tmp/boss/received_files/*")
+        files = glob.glob(self.job_receive_path + "*")
         for f in files:
             os.remove(f)
-        files = glob.glob("/tmp/boss/files_to_send/*")
+        files = glob.glob(self.job_send_path + "*")
         for f in files:
             os.remove(f)
 
 def main():
+    # machine infos
     host = "127.0.0.1"
-    workers = [["127.0.0.1", 50001, 50002], ["127.0.0.1", 50003, 50004], ["127.0.0.1", 50005, 50006], ["127.0.0.1", 50007, 50008]]
-    in_file_path = "tests/input/x264_medium.mkv"
-    out_file_path = "tests/output/out.mkv"
-    out_file_path_with_audio = "tests/output/out_with_audio.mkv"
+    workers = [["127.0.0.1", 50001, 50002]]
+    
+    # files
+    in_file = "tests/input/x264_medium.mkv"
+    out_file = "tests/output/out.mkv"
+
+    # job infos
+    segment_count = 15
     codec = "copy"
-    segment_duration = 30
 
-    boss = Boss(host, workers, in_file_path, out_file_path, codec=codec, s_d = segment_duration)
+    # where to store temporary files
+    use_tmp_fs = True
+    boss_snd_fp = "/tmp/boss/files_to_send/"
+    boss_rcv_fp = "/tmp/boss/received_files/"
+    log_file_path = "logs/boss/"
+    if not use_tmp_fs:
+        boss_snd_fp = ".tmp/boss/files_to_send/"
+        boss_rcv_fp = ".tmp/boss/received_files/"
+
+    # init boss
+    boss = Boss(host, workers, in_fp = in_file, out_fp= out_file,
+    codec=codec, s_c = segment_count, snd_fp= boss_snd_fp, rcv_fp=boss_rcv_fp,
+    log_fp= log_file_path)
+    # start work
     boss.run()
+    # merge received files
     muxer = Muxer()
-    muxer.merge(out_file_path, "/tmp/boss/received_files/job_files.txt")
+    muxer.merge(out_file, boss_rcv_fp + "job_files.txt")
+    # close boss
     boss.close()
-
-    return
+    return 0
 main()

@@ -1,11 +1,13 @@
 from ffmpeg_wrapper import param_call
+from ffmpeg_wrapper.prober import Prober
+from math import ceil
 
 class Demuxer():
     def __init__(self):
         return
 
     # break input movie and return segment list
-    def split_video(self, in_file, out_path, segment_duration = 10,
+    def split_video_by_duration(self, in_file, out_path, segment_duration = 10,
     segment_log = "/tmp/boss/files_to_send/job_files.txt", segment_format="segment-%04d.mkv"):
         """
             Required fields: in_file, out_path, segment_duration
@@ -24,6 +26,53 @@ class Demuxer():
             The demuxer will try to keep all streams synched to video as
             closely as possible (hence -vsync 2)
         """
+
+        # get ffmpeg params
+        global_options = []
+        input_options = [] # "-an" for no audio
+        output_options = ["-c", "copy", "-vsync", "2", "-map", "0", "-f","segment","-segment_time", str(segment_duration)]
+        output_options += ["-segment_list", segment_log, "-reset_timestamps", "1"]
+        params = [in_file, out_path + segment_format, global_options, input_options, output_options]
+        
+        # call ffmpeg
+        ret_code = param_call.call(params)
+        
+        # get all segments into one list
+        job_files = []
+        with open(segment_log, "rt") as s_l:
+            lines = s_l.readlines()
+            for line in lines:
+                job_files.append(out_path + line.strip())
+        return ret_code, job_files
+    
+    def split_video(self, in_file, out_path, segment_count = 10,
+    segment_log = "/tmp/boss/files_to_send/job_files.txt", segment_format="segment-%04d.mkv"):
+        """
+            Required fields: in_file, out_path, segment_duration
+            Optional fields: segment_log, segment_format
+            Returns: ffmpeg_ret_code, job_file_list
+
+            Splits video video into segments of segment_duration seconds.
+            Splitting points are key frames. Returns the same ret code
+            as the ffmpeg process
+
+            The demuxer doesn't encode the file, so the division of timestamps
+            may lead to negative timestamps. Try to avoid that by resetting them
+            (hence -reset_timestamps 1). Success of this method depends on codec
+            and sizes
+
+            The demuxer will try to keep all streams synched to video as
+            closely as possible (hence -vsync 2)
+        """
+
+        # get video duration
+        prober = Prober()
+        video_duration = prober.get_length(in_file)
+
+        # get segment duration
+        segment_duration = max(ceil(video_duration / segment_count), 10)
+
+        print("Segment_duration:", segment_duration)
 
         # get ffmpeg params
         global_options = []
