@@ -3,6 +3,14 @@ import timeit
 import os
 
 class Transcoder():
+    """
+        Required fields: codec_name
+        Optional fields: none
+
+        Creates a transcoder for a specific codec. The
+        transcoder will convert the video stream to the
+        given codec and leave all other streams untouched 
+    """
     # for better understanding of crf: https://slhck.info/video/2017/02/24/crf-guide.html
     # max muxing queue size exists to avoid buffer overflows
     codec_options = {"copy":["-map_metadata", "0", "-c:v", "copy"],
@@ -16,12 +24,6 @@ class Transcoder():
     computing_power = {}
     codec = None
     def __init__(self, codec_name):
-        """
-            Required fields: codec_name
-            Optional fields: none
-
-            Creates a transcoder for a specific codec 
-        """
         if codec_name not in self.codec_options:
             print("ERR! %s is not a valid codec!" % codec)
             return None

@@ -1,11 +1,21 @@
 from ffmpeg_wrapper.param_call import call_probe
 
 class Prober():
+    """
+        Required fields: in_file:str
+        Optional fields: none
+
+        Probes files and gets information such as time length,
+        timestamps, metadata, etc. It uses ffprobe as backend,
+        which is supposed to be faster than calling ffmpeg when
+        extracting this kind of information
+    """
+
     def __init__(self):
         return
     def get_length(self, in_file):
         """
-            Required fields: in_file
+            Required fields: in_file:str
             Optional fields: none
             Returns: float
 

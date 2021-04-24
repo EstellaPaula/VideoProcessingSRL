@@ -1,12 +1,16 @@
 import socket, select
 import threading, queue
+
 from peer_to_peer import connection
 from peer_to_peer.message import Messenger
 from peer_to_peer.file_transfer import FileTransfer
 from peer_to_peer.logger import Log
+from peer_to_peer.statistics import EventTimer
 
 from ffmpeg_wrapper.demuxer import Demuxer
 from ffmpeg_wrapper.muxer import Muxer
+from ffmpeg_wrapper.performance_analysis import PerformanceAnalyzer
+
 import sys, os, glob
 import time
 from pathlib import Path
@@ -38,10 +42,11 @@ class Boss():
     msg_sockets = []
     file_sockets = []
     logs = []
+    log = None
     
     # stats info
     
-    def __init__(self, h, w, in_fp, out_fp, codec="copy", s_c = 10,
+    def __init__(self,name, h, w, in_fp, out_fp, codec="copy", s_c = 10,
     snd_fp = "/tmp/boss/files_to_send/", rcv_fp = "/tmp/boss/received_files/", log_fp = "logs/boss/"):
         # init temp and log paths if they don't exist
         Path(log_fp).mkdir(parents=True, exist_ok=True)
@@ -80,9 +85,10 @@ class Boss():
                 afile.write("""file '%s'\n""" % jf_name)
         
         # init logs
+        self.log = Log("localhost", 0, 0, log_fp + name + ".txt")
         for i in range(self.worker_count):
             w_host, w_msg_port, w_file_port = self.workers[i]
-            log = Log(w_host, w_msg_port, w_file_port, log_fp + str(i) + ".txt")
+            log = Log(w_host, w_msg_port, w_file_port, log_fp + name + str(i) + ".txt")
             self.logs.append(log)
         
 
@@ -217,29 +223,31 @@ class Boss():
         # close logs
         for log in self.logs:
             log.close()
-        # remove temporary files
-        files = glob.glob(self.job_receive_path + "*")
-        for f in files:
-            os.remove(f)
-        files = glob.glob(self.job_send_path + "*")
-        for f in files:
-            os.remove(f)
+        # # remove temporary files
+        # # maybe don't, the app is more stable that way :)))
+        # files = glob.glob(self.job_receive_path + "*")
+        # for f in files:
+        #     os.remove(f)
+        # files = glob.glob(self.job_send_path + "*")
+        # for f in files:
+        #     os.remove(f)
 
 def main():
     # machine infos
     host = "127.0.0.1"
-    workers = [["127.0.0.1", 50001, 50002]]
-    
+    workers = [["127.0.0.1", 50001, 50002], ["127.0.0.1", 50003, 50004], ["127.0.0.1", 50005, 50006]]
+    name = sys.argv[1]
+
     # files
-    in_file = "tests/input/x264_medium.mkv"
+    in_file = "tests/input/x264_big.mkv"
     out_file = "tests/output/out.mkv"
 
     # job infos
-    segment_count = 15
+    segment_count = 131
     codec = "copy"
 
     # where to store temporary files
-    use_tmp_fs = True
+    use_tmp_fs = False
     boss_snd_fp = "/tmp/boss/files_to_send/"
     boss_rcv_fp = "/tmp/boss/received_files/"
     log_file_path = "logs/boss/"
@@ -248,15 +256,27 @@ def main():
         boss_rcv_fp = ".tmp/boss/received_files/"
 
     # init boss
-    boss = Boss(host, workers, in_fp = in_file, out_fp= out_file,
+    boss = Boss(name, host, workers, in_fp = in_file, out_fp= out_file,
     codec=codec, s_c = segment_count, snd_fp= boss_snd_fp, rcv_fp=boss_rcv_fp,
     log_fp= log_file_path)
+
+    # init timer to count overall process
+    timer = EventTimer(events=["processing"], log=boss.log)
+    # start timer
+    timer.start("processing")
     # start work
     boss.run()
+    # stop timer
+    processing_duration = timer.stop("processing")
     # merge received files
     muxer = Muxer()
     muxer.merge(out_file, boss_rcv_fp + "job_files.txt")
+    # compute speed
+    analyzer = PerformanceAnalyzer()
+    print("\nFinal report:")
+    speed = analyzer.get_processing_power(out_file, processing_duration, codec)
     # close boss
     boss.close()
+
     return 0
 main()

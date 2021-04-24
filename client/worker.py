@@ -1,14 +1,21 @@
 import socket, select
 import threading, queue
+
 from peer_to_peer import connection
 from peer_to_peer.message import Messenger
 from peer_to_peer.file_transfer import FileTransfer
 from peer_to_peer.logger import Log
+from peer_to_peer.statistics import EventTimer
+
 from ffmpeg_wrapper.transcoder import Transcoder
 from ffmpeg_wrapper.prober import Prober
+from ffmpeg_wrapper.performance_analysis import PerformanceAnalyzer
+
+from numpy import mean, std
 import sys, os, glob
 import time
 from pathlib import Path
+
 
 class Worker():
     """
@@ -38,7 +45,7 @@ class Worker():
     sent_job_files = []
     
 
-    def __init__(self, b_h, worker, snd_fp = "/tmp/worker/files_to_send/",
+    def __init__(self, name, b_h, worker, snd_fp = "/tmp/worker/files_to_send/",
      rcv_fp = "/tmp/worker/received_files/", log_file_path = "logs/worker/"):
         # init temp paths if they don't exist
         Path(log_file_path).mkdir(parents=True, exist_ok=True)
@@ -51,7 +58,7 @@ class Worker():
         self.boss_host = b_h
         self.msg_port = msg_p
         self.file_port = file_p
-        self.log_file_path = log_file_path + str(self.msg_port) + ".txt"
+        self.log_file_path = log_file_path + name + ".txt"
         self.log = Log(h, msg_p, file_p, self.log_file_path)
         
         # init temp info
@@ -145,8 +152,13 @@ class Worker():
                 log.write("ERROR SENDING CODEC! EXITING")
                 return
             
+            # init timer
+            timer = EventTimer(events=["processing", "network"], log=self.log)
+            # init performance analyzer
+            analyzer = PerformanceAnalyzer()
             # init transcoder
             transcoder = Transcoder(codec)
+            transcoding_durations = []
             
             # request job loop
             print("BEGIN JOB REQUEST LOOP")
@@ -173,7 +185,11 @@ class Worker():
                     # receive job file
                     print("JOB", i)
                     self.log.write("RECEIVING 1 FILE:")
+                    # start network timer
+                    timer.start("network")
                     ok, f_path = file_channel.receive(self.receive_path)
+                    # update network timer
+                    timer.stop("network")
                     # abort if unsuccesful
                     if ok != file_channel.OK:
                         self.log.write("FILE RECEIVE FAILED:" + f_path)
@@ -186,8 +202,13 @@ class Worker():
                     # transcode job file
                     f_name = f_path.split("/")[-1]
                     self.log.write("TRANSCODING 1 FILE: " + f_path)
+                    # start processing timer
+                    timer.start("processing")
                     transcoder.transcode(f_path, self.send_path + f_name)
-                    
+                    # stop processing timer and get duration
+                    transcoding_duration = timer.stop("processing")
+                    transcoding_durations.append(transcoding_duration)
+
                     # notify boss that transcoding was successful
                     ok, m = msg_channel.send("ok")  
                     # abort if unsuccesful
@@ -197,15 +218,73 @@ class Worker():
 
                     # send transcoded job file back
                     self.log.write("SENDING 1 FILE: " + self.send_path + f_name)
+                    # start network timer
+                    timer.start("network")
                     ok, m = file_channel.send(self.send_path + f_name)
+                    # stop network timer
+                    timer.stop("network")
                     # abort if unsuccesful
                     if ok != file_channel.OK:
                         self.log.write("FILE SEND FAILED")
                         return
                     # job files sent successful, add to temp list
                     self.sent_job_files.append(self.send_path + f_name)
-        return
+            # compute worker stats
+            transcoding_speeds = []
+            for i in range(len(self.sent_job_files)):
+                job_file = self.sent_job_files[i]
+                duration = transcoding_durations[i]
+                speed = analyzer.get_processing_power(job_file, duration, codec, verbose=False)
+                transcoding_speeds.append(speed)
+            job_count = len(self.sent_job_files)
+            mean_transcoding_speed = mean(transcoding_speeds)
+            std_transcoding_speed = std(transcoding_speeds)
+            network_duration = timer.get_duration("network")
+            processing_duration = timer.get_duration("processing")
+
+            # display worker stats
+            print("\nFinal report:")
+            print("Transcoded files: {count}".format(count = job_count))
+            print("Network duration: {duration:.3f}s".format(duration = network_duration))
+            print("Transcoding duration: {duration:.3f}s".format(duration = transcoding_duration))
+            print("Average transcoding speed: {speed:.3f}x".format(speed=mean_transcoding_speed))
+            print("Transcoding std error: {speed:.3f}x".format(speed=std_transcoding_speed))
+            print()
+
+            # write worker stats to logs
+            self.log.write("\n\nFinal report:")
+            self.log.write("Transcoded files: {count}".format(count = job_count))
+            self.log.write("Network duration: {duration:.3f}s".format(duration = network_duration))
+            self.log.write("Transcoding duration: {duration:.3f}s".format(duration = transcoding_duration))
+            self.log.write("Average transcoding speed: {speed:.3f}x".format(speed=mean_transcoding_speed))
+            self.log.write("Transcoding std error: {speed:.3f}x".format(speed=std_transcoding_speed))
+
+        return job_count, network_duration, transcoding_duration, mean_transcoding_speed, std_transcoding_speed 
     
+    def compute_power(self, test_file, codec, tmp_out_path="/tmp/test_file.mkv"):
+        """
+            Required fields: test_file:str, codec:str
+            Optional fields: tmp_out_path:str
+            Returns: speed:float
+
+            Computes processing power of a worker
+        """
+
+        # get codec transcoding time
+        transcoder = Transcoder(codec) 
+        event_timer = EventTimer(events=["transcoding"], log=self.log)
+        event_timer.start("transcoding")
+        ret_code = transcoder.transcode(in_file= test_file, out_file=tmp_out_path)
+        event_timer.stop("transcoding")
+        transcoding_duration = event_timer.get_duration("transcoding")
+        # get performance
+        performance_analyzer = PerformanceAnalyzer()
+        computing_power = performance_analyzer.get_processing_power(test_file,transcoding_duration, codec)
+        # remove temporary file
+        os.remove(tmp_out_path)
+        return computing_power
+       
+        
     def close(self):
         """
             Required fields: none
@@ -227,21 +306,23 @@ class Worker():
         for f in self.sent_job_files:
             os.remove(f)
         
-        
-
 def main():
     # machine infos
     host = "127.0.0.1"
-    worker = ["127.0.0.1", int(sys.argv[1]), int(sys.argv[2])]
+    name = sys.argv[1]
+    worker = ["127.0.0.1", int(sys.argv[2]), int(sys.argv[3])]
 
     # where to store temporary files
-    use_tmp_fs = True
+    use_tmp_fs = False
     worker_snd_fp = "/tmp/worker/files_to_send/"
     worker_rcv_fp = "/tmp/worker/received_files/"
     log_file_path = "logs/worker/"
+    if not use_tmp_fs:
+        worker_snd_fp = ".tmp/worker/files_to_send/"
+        worker_rcv_fp = ".tmp/worker/received_files/"
 
     # init worker
-    worker = Worker(host, worker, snd_fp=worker_snd_fp, rcv_fp=worker_rcv_fp,
+    worker = Worker(name, host, worker, snd_fp=worker_snd_fp, rcv_fp=worker_rcv_fp,
     log_file_path = log_file_path)
     # start work
     worker.work()
