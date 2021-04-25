@@ -2,7 +2,7 @@ import socket, select
 import threading, queue
 
 from peer_to_peer import connection
-from peer_to_peer.message import Messenger
+from peer_to_peer.message import Messenger, pad_string, unpad_string
 from peer_to_peer.file_transfer import FileTransfer
 from peer_to_peer.logger import Log
 from peer_to_peer.statistics import EventTimer
@@ -70,7 +70,7 @@ class Boss():
         
         # init demuxer and get job files/audio
         demuxer = Demuxer()
-        ok, job_files = demuxer.split_video(in_file = self.in_file_path, out_path = self.job_send_path, segment_count = self.segment_count)
+        ok, job_files = demuxer.split_video(in_file = self.in_file_path, out_path = self.job_send_path, segment_count = self.segment_count, segment_log=self.job_send_path + "job_files.txt")
         # ok, self.audio_rip = demuxer.rip_audio(in_file = self.in_file_path, out_path = rcv_fp)
         
         # add job files to thread safe queue
@@ -78,7 +78,7 @@ class Boss():
             self.job_files.put(jf)
         
         # add job files to remuxing file list
-        with open(rcv_fp + "job_files.txt", 'wt') as afile:
+        with open(self.job_receive_path + "job_files.txt", 'wt') as afile:
             afile.write("# files to be muxed together\n")
             for jf in job_files:
                 jf_name = jf.split("/")[-1]
@@ -141,7 +141,8 @@ class Boss():
         file_channel = FileTransfer(file_s, msg_channel, log)
         
         # send message with codec
-        ok, m = msg_channel.send_with_check(self.codec)
+        padded_codec = pad_string(self.codec, 10)
+        ok, m = msg_channel.send_with_check(padded_codec)
         if ok != msg_channel.OK:
             log.write("ERROR SENDING CODEC! EXITING")
             return
@@ -151,7 +152,7 @@ class Boss():
         while True:
             # wait for job request
             # log.write("WAITING FOR JOB REQUEST")
-            ok, request = msg_channel.receive()
+            ok, request = msg_channel.receive(msg_size=11)
             if ok == msg_channel.OK and request == "job_request":
                 try:
                     # send 1 job to the worker that requested
@@ -167,7 +168,7 @@ class Boss():
                         return
                     
                     # receive confirmation that transcoding was successful
-                    ok, msg = msg_channel.receive(buffer_size=2)
+                    ok, msg = msg_channel.receive(msg_size=2)
                     if ok != msg_channel.OK or msg != "ok":
                         # add job back to queue if unsuccesful
                         log.write("Transcoding on worker side failed")
@@ -201,11 +202,18 @@ class Boss():
             power
         """
         worker_threads = [threading.Thread(target=self.work_with, args=[worker_id]) for worker_id in range(self.worker_count)]
+        # init timer to count overall process
+        timer = EventTimer(events=["processing"], log=self.log)
+        # start timer
+        timer.start("processing")
+        # start worker threads and wait for them to finish work
         for worker_thread in worker_threads:
             worker_thread.start()
         for worker_thread in worker_threads:
             worker_thread.join()
-        return
+        # stop timer
+        processing_duration = timer.stop("processing")
+        return processing_duration
 
     def close(self):
         """
@@ -223,28 +231,30 @@ class Boss():
         # close logs
         for log in self.logs:
             log.close()
-        # # remove temporary files
-        # # maybe don't, the app is more stable that way :)))
-        # files = glob.glob(self.job_receive_path + "*")
-        # for f in files:
-        #     os.remove(f)
-        # files = glob.glob(self.job_send_path + "*")
-        # for f in files:
-        #     os.remove(f)
+        # remove temporary files
+        # maybe don't, the app is more stable that way :)))
+        files = glob.glob(self.job_receive_path + "*")
+        for f in files:
+            os.remove(f)
+        files = glob.glob(self.job_send_path + "*")
+        for f in files:
+            os.remove(f)
 
 def main():
     # machine infos
     host = "127.0.0.1"
-    workers = [["127.0.0.1", 50001, 50002], ["127.0.0.1", 50003, 50004], ["127.0.0.1", 50005, 50006]]
+    workers = [["127.0.0.1", 50001, 50002]]
     name = sys.argv[1]
 
     # files
-    in_file = "tests/input/x264_big.mkv"
-    out_file = "tests/output/out.mkv"
+    size = sys.argv[4]
+    in_file = "tests/input/x264_{size}.mkv".format(size=size)
+    out_file = "tests/output/out_{size}.mkv".format(size=size)
 
     # job infos
-    segment_count = 131
-    codec = "copy"
+    codec = sys.argv[2]
+    segment_count = int(sys.argv[3])
+    
 
     # where to store temporary files
     use_tmp_fs = False
@@ -260,23 +270,29 @@ def main():
     codec=codec, s_c = segment_count, snd_fp= boss_snd_fp, rcv_fp=boss_rcv_fp,
     log_fp= log_file_path)
 
-    # init timer to count overall process
-    timer = EventTimer(events=["processing"], log=boss.log)
-    # start timer
-    timer.start("processing")
     # start work
-    boss.run()
-    # stop timer
-    processing_duration = timer.stop("processing")
+    processing_duration= boss.run()
     # merge received files
     muxer = Muxer()
     muxer.merge(out_file, boss_rcv_fp + "job_files.txt")
     # compute speed
     analyzer = PerformanceAnalyzer()
-    print("\nFinal report:")
     speed = analyzer.get_processing_power(out_file, processing_duration, codec)
     # close boss
     boss.close()
 
+    # create data folder if it doesn't exist
+    data_folder = "collected_data/{codec}/{size}/{worker_count}/{segment_count}/".format(
+        codec=codec, size=size, worker_count=len(workers), segment_count=segment_count)
+    Path(data_folder).mkdir(parents=True, exist_ok=True)
+    # write to data file in append mode
+    data_file = "{data_folder}{boss_name}.txt".format(data_folder=data_folder, boss_name=name) 
+    with open(data_file, "a") as afile:
+        afile.write("{processing_duration:.4f} {speed:.4f}\n".format(processing_duration = processing_duration, speed=speed))
+    
+    # display worker stats
+    print("\nFinal report:")
+    print("Process duration: {duration:.3f}s".format(duration = processing_duration))
+    print("Equivalent transcoding speed: {speed:.3f}x".format(speed = speed))
     return 0
 main()

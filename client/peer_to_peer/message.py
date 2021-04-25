@@ -2,6 +2,11 @@ import socket
 import sys
 from peer_to_peer import logger
 
+def pad_string(s, target_size):
+    return s.ljust(target_size, "{")
+def unpad_string(s):
+    return s.replace("{","")
+
 class Messenger():
     """
         Required fields: msg_s, msg_log
@@ -50,9 +55,9 @@ class Messenger():
             self.log.write("[MSG_SEND] Error sending data: " + str(error_msg))
             return self.SEND_ERROR, str(error_msg)
 
-    def receive(self, buffer_size = 1024):
+    def receive(self, msg_size, buffer_size = 1024):
         """
-            Required fields: none
+            Required fields: msg_size
             Optional fields: buffer_size
             Returns: ret_code, message
             Return codes: OK, RECEIVE_ERROR
@@ -63,14 +68,20 @@ class Messenger():
         """
 
         # try to receive data
-        try:
-            recv_data = self.msg_socket.recv(buffer_size)
-            # decode received data remake string msg
-            msg = recv_data.decode() 
-            return self.OK, str(msg)
-        except socket.error as error_msg:
-            self.log.write("[MSG_RECV] Error receiving data: " + str(error_msg))
-            return self.RECEIVE_ERROR, str(error_msg)
+        received = 0
+        while received < msg_size:
+            try:
+                recv_data = self.msg_socket.recv(msg_size)
+                # decode received data remake string msg
+                msg = recv_data.decode() 
+                return self.OK, str(msg)
+            except socket.error as error_msg:
+                self.log.write("[MSG_RECV] Error receiving data: " + str(error_msg))
+                return self.RECEIVE_ERROR, str(error_msg)
+            if recv_data:
+                received += len(msg)
+            else:
+                break
 
     def send_with_check(self, msg, buffer_size = 1024):
         """
@@ -83,24 +94,27 @@ class Messenger():
             received and check if contents are identical.  
         """
 
+        # get msg size
+        msg_size = len(msg)
+
         # send msg, await response
         ret1, msg1 = self.send(msg, buffer_size)
         if ret1 != self.OK:
             return self.SEND_CHECK_ERROR, msg1
         # receive response
-        ret2, response = self.receive(buffer_size)
+        ret2, response = self.receive(msg_size= msg_size, buffer_size = buffer_size)
         if ret2 != self.OK:
             return self.SEND_CHECK_ERROR, response
         # check response content
         if ret2 == self.OK and msg == response:
-            self.send("ok", buffer_size)
+            self.send("ok", buffer_size=buffer_size)
             return self.OK, "send_check_ok"
         else:
-            self.log.write("[MSG_SEND_CHECK] Sent and received content differ:" + msg + " " + response)
-            self.send("err", buffer_size)
+            self.log.write("[MSG_SEND_CHECK] Sent and received content differ:{msg}vs{response}".format(msg = msg, response=response))
+            self.send("er", buffer_size=buffer_size)
             return self.SEND_CHECK_ERROR, "send_check_err"
 
-    def receive_with_check(self, buffer_size = 1024):
+    def receive_with_check(self, msg_size, buffer_size = 1024):
         """
             Required fields: none
             Optional fields: buffer_size
@@ -114,7 +128,7 @@ class Messenger():
         """
 
         # await msg and send it back
-        ret1, msg1 = self.receive(buffer_size)
+        ret1, msg1 = self.receive(msg_size = msg_size, buffer_size = buffer_size)
         
         if ret1 != self.OK:
             return self.RECEIVE_CHECK_ERROR, msg1
@@ -123,7 +137,7 @@ class Messenger():
         if ret2 != self.OK:
             return self.RECEIVE_CHECK_ERROR, msg1
         # wait for validation
-        ret3, response = self.receive(buffer_size)
+        ret3, response = self.receive(msg_size=2, buffer_size=buffer_size)
         if response == "ok":
             return self.OK, msg1
         else:

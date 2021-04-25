@@ -1,5 +1,8 @@
 import socket, select
-from peer_to_peer import message, logger
+
+from peer_to_peer.message import Messenger, pad_string, unpad_string
+from peer_to_peer.logger import Log
+
 # import progressbar
 import os, sys
 import hashlib
@@ -75,8 +78,11 @@ class FileTransfer():
         
         # get file size
         file_size = os.path.getsize(file_path)
+        file_size_str = str(file_size)
+        # pad file_size_str to 20 characters
+        padded_file_size_str = pad_string(file_size_str, 20)
         # send file size to receiver
-        ok, m = self.messenger.send_with_check(str(file_size))
+        ok, m = self.messenger.send_with_check(padded_file_size_str)
         
         # check if receiver got correct file size
         if ok != self.messenger.OK:
@@ -102,7 +108,7 @@ class FileTransfer():
         
         # check transfer success
         self.log.write("[SEND FILE] Waiting for receiver hash confirmation!")
-        ok, m = self.messenger.receive(buffer_size = 2)
+        ok, m = self.messenger.receive(msg_size=2,buffer_size = buffer_size)
         if ok == self.messenger.OK and m == "ok":
             self.log.write("[SEND FILE] Sender and receiver hashes match! File sent successfully!")
             return self.OK, "send_ok"
@@ -126,21 +132,22 @@ class FileTransfer():
             Files sizes and network conditions might impose adjusting buffer_size
         """
 
-        # receive file name
-        ok, file_name = self.messenger.receive_with_check()
+        # receive file name that has 16 characters (eg. segment-0000.mkv)
+        ok, file_name = self.messenger.receive_with_check(msg_size=16)
         if ok != self.messenger.OK:
             self.log.write("[RECEIVE FILE] File name receive failed, received:" + file_name + "!")
             return self.FILE_NAME_ERROR, "bad file name"
         
-        # receive file size
-        ok, file_size_str = self.messenger.receive_with_check()
+        # receive padded file size str of length 20
+        ok, padded_file_size_str = self.messenger.receive_with_check(msg_size=20)
+        file_size_str = unpad_string(padded_file_size_str)
         if ok != self.messenger.OK:
             self.log.write("[RECEIVE FILE] File size receive failed!")
             return self.RECEIVE_ERROR, "bad file size"
         self.log.write("[RECEIVE FILE] File size received successfully!")
         file_size = int(file_size_str)
-        # receive file hash
-        ok, file_hash = self.messenger.receive_with_check()
+        # receive file hash of length 32
+        ok, file_hash = self.messenger.receive_with_check(msg_size=32)
         if ok != self.messenger.OK:
             self.log.write("[RECEIVE FILE] File hash receive failed!")
             return self.FILE_SIZE_ERROR, "bad file hash"

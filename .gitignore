@@ -4,3 +4,5 @@ client/tests
 client/logs
 # exclude temporary files
 client/.tmp
+# exclude collected data
+client/collected_data

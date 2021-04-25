@@ -2,7 +2,7 @@ import socket, select
 import threading, queue
 
 from peer_to_peer import connection
-from peer_to_peer.message import Messenger
+from peer_to_peer.message import Messenger, pad_string, unpad_string
 from peer_to_peer.file_transfer import FileTransfer
 from peer_to_peer.logger import Log
 from peer_to_peer.statistics import EventTimer
@@ -11,7 +11,7 @@ from ffmpeg_wrapper.transcoder import Transcoder
 from ffmpeg_wrapper.prober import Prober
 from ffmpeg_wrapper.performance_analysis import PerformanceAnalyzer
 
-from numpy import mean, std
+from statistics import mean, stdev
 import sys, os, glob
 import time
 from pathlib import Path
@@ -43,6 +43,9 @@ class Worker():
     receive_path = None
     received_job_files = []
     sent_job_files = []
+
+    # ret codes
+    ERR = [0, 0, 0, 0, 0] 
     
 
     def __init__(self, name, b_h, worker, snd_fp = "/tmp/worker/files_to_send/",
@@ -88,11 +91,11 @@ class Worker():
         self.msg_socket.listen(1)
         conn_socket, (conn_host, conn_port) = self.msg_socket.accept()
         
-        # check if connection came from boss
-        if conn_host != self.boss_host:
-            self.log.write("WARNING! received message from unexpected host! This incident will be reported!")
-            conn_socket.close()
-            return False
+        # TODO:check if connection came from boss
+        # if conn_host != self.boss_host:
+        #     self.log.write("WARNING! received message from unexpected host! This incident will be reported!")
+        #     conn_socket.close()
+        #     return False
         
         # update message socket to connection socket
         self.msg_socket = conn_socket
@@ -146,11 +149,13 @@ class Worker():
         
         # proceed to loop if connection is successful
         if connection_success:
-            # receive codec
-            ok, codec = msg_channel.receive_with_check()
+            # receive codec padded to len 10
+            ok, padded_codec = msg_channel.receive_with_check(msg_size=10)
+            # unpad codec
+            codec = unpad_string(padded_codec)
             if ok != msg_channel.OK:
                 log.write("ERROR SENDING CODEC! EXITING")
-                return
+                return self.ERR 
             
             # init timer
             timer = EventTimer(events=["processing", "network"], log=self.log)
@@ -172,7 +177,7 @@ class Worker():
                 
                 # receive number of jobs
                 # limit recv buffer to 1 byte to avoid race with send
-                ok, job_count = msg_channel.receive(buffer_size = 1)
+                ok, job_count = msg_channel.receive(msg_size=1)
                 print("RECEIVED", job_count, "JOBS")
                 
                 # stop if there are no jobs left
@@ -193,7 +198,7 @@ class Worker():
                     # abort if unsuccesful
                     if ok != file_channel.OK:
                         self.log.write("FILE RECEIVE FAILED:" + f_path)
-                        return
+                        return self.ERR
                     self.log.write("RECEIVED 1 FILE: " + f_path)
 
                     # job files receive successful, add to temp list
@@ -214,7 +219,7 @@ class Worker():
                     # abort if unsuccesful
                     if ok != msg_channel.OK:
                         self.log.write("TRANSCODING SUCCESS NOTIFY FAILED")
-                        return
+                        return self.ERR
 
                     # send transcoded job file back
                     self.log.write("SENDING 1 FILE: " + self.send_path + f_name)
@@ -226,7 +231,7 @@ class Worker():
                     # abort if unsuccesful
                     if ok != file_channel.OK:
                         self.log.write("FILE SEND FAILED")
-                        return
+                        return self.ERR
                     # job files sent successful, add to temp list
                     self.sent_job_files.append(self.send_path + f_name)
             # compute worker stats
@@ -238,7 +243,7 @@ class Worker():
                 transcoding_speeds.append(speed)
             job_count = len(self.sent_job_files)
             mean_transcoding_speed = mean(transcoding_speeds)
-            std_transcoding_speed = std(transcoding_speeds)
+            std_transcoding_speed = stdev(transcoding_speeds)
             network_duration = timer.get_duration("network")
             processing_duration = timer.get_duration("processing")
 
@@ -258,33 +263,9 @@ class Worker():
             self.log.write("Transcoding duration: {duration:.3f}s".format(duration = transcoding_duration))
             self.log.write("Average transcoding speed: {speed:.3f}x".format(speed=mean_transcoding_speed))
             self.log.write("Transcoding std error: {speed:.3f}x".format(speed=std_transcoding_speed))
+            
+        return job_count, network_duration, transcoding_duration, mean_transcoding_speed, std_transcoding_speed     
 
-        return job_count, network_duration, transcoding_duration, mean_transcoding_speed, std_transcoding_speed 
-    
-    def compute_power(self, test_file, codec, tmp_out_path="/tmp/test_file.mkv"):
-        """
-            Required fields: test_file:str, codec:str
-            Optional fields: tmp_out_path:str
-            Returns: speed:float
-
-            Computes processing power of a worker
-        """
-
-        # get codec transcoding time
-        transcoder = Transcoder(codec) 
-        event_timer = EventTimer(events=["transcoding"], log=self.log)
-        event_timer.start("transcoding")
-        ret_code = transcoder.transcode(in_file= test_file, out_file=tmp_out_path)
-        event_timer.stop("transcoding")
-        transcoding_duration = event_timer.get_duration("transcoding")
-        # get performance
-        performance_analyzer = PerformanceAnalyzer()
-        computing_power = performance_analyzer.get_processing_power(test_file,transcoding_duration, codec)
-        # remove temporary file
-        os.remove(tmp_out_path)
-        return computing_power
-       
-        
     def close(self):
         """
             Required fields: none
@@ -325,8 +306,30 @@ def main():
     worker = Worker(name, host, worker, snd_fp=worker_snd_fp, rcv_fp=worker_rcv_fp,
     log_file_path = log_file_path)
     # start work
-    worker.work()
+    [job_count, network_duration, transcoding_duration,
+     mean_transcoding_speed, std_transcoding_speed] = worker.work()
     # close worker
     worker.close()
+
+    # collected data info
+    codec = sys.argv[4]
+    size = sys.argv[5]
+    worker_count = int(sys.argv[6])
+    segment_count = int(sys.argv[7])
+
+    # create data folder if it doesn't exist
+    data_folder = "collected_data/{codec}/{size}/{worker_count}/{segment_count}/".format(
+        codec=codec, size=size, worker_count=worker_count, segment_count=segment_count)
+    Path(data_folder).mkdir(parents=True, exist_ok=True)
+    # write to data file in append mode
+    data_file = "{data_folder}{worker_name}.txt".format(data_folder=data_folder, worker_name=name) 
+    with open(data_file, "a") as afile:
+        afile.write("{job_count} {network_duration:.4f} {transcoding_duration:.4f} {mean_transcoding_speed:.4f} {std_transcoding_speed:.4f}\n".format(
+            job_count = job_count, network_duration = network_duration,
+            transcoding_duration = transcoding_duration, 
+            mean_transcoding_speed = mean_transcoding_speed, 
+            std_transcoding_speed = std_transcoding_speed
+        ))
+
     return 0
 main()
