@@ -31,7 +31,7 @@ class EventTimer():
             return
         # reset both ref and duration
         self.timers[event]["ref"] = timeit.default_timer()
-        self.timers[event]["duration"] = timeit.default_timer()
+        self.timers[event]["duration"] = 0
         return
     def start(self, event):
         """

@@ -260,11 +260,11 @@ class Worker():
             self.log.write("\n\nFinal report:")
             self.log.write("Transcoded files: {count}".format(count = job_count))
             self.log.write("Network duration: {duration:.3f}s".format(duration = network_duration))
-            self.log.write("Transcoding duration: {duration:.3f}s".format(duration = transcoding_duration))
-            self.log.write("Average transcoding speed: {speed:.3f}x".format(speed=mean_transcoding_speed))
+            self.log.write("Transcoding duration: {duration:.3f}s".format(duration = processing_duration))
+            self.log.write("Average transcoding speed: {speed:.3f}x".format(speed= mean_transcoding_speed))
             self.log.write("Transcoding std error: {speed:.3f}x".format(speed=std_transcoding_speed))
             
-        return job_count, network_duration, transcoding_duration, mean_transcoding_speed, std_transcoding_speed     
+        return job_count, network_duration, processing_duration, mean_transcoding_speed, std_transcoding_speed     
 
     def close(self):
         """

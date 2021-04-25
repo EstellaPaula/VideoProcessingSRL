@@ -243,7 +243,7 @@ class Boss():
 def main():
     # machine infos
     host = "127.0.0.1"
-    workers = [["127.0.0.1", 50001, 50002]]
+    workers = [["nehalem-wn15", 50001, 50002], ["nehalem-wn16", 50001, 50002], ["nehalem-wn17", 50001, 50002], ["nehalem-wn18", 50001, 50002]]
     name = sys.argv[1]
 
     # files
