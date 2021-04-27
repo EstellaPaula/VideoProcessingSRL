@@ -61,15 +61,6 @@ services:
       - ./grafana/dashboards/:/etc/grafana/dashboards/
     restart: always
 
-  nginx:
-    image: estellapaula/video_processing:first_version_nginx
-    ports:
-      - 80:80
-    depends_on:
-      - rest_api
-    networks:
-      - server_network
-
   visualizer:
     image: dockersamples/visualizer:latest
     ports:

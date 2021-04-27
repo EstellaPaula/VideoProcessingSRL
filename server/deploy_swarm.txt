@@ -16,5 +16,6 @@
    49  eval $(docker-machine env node-1)
    50  docker-machine ip $(docker service ps -f "desired-state=running" --format "{{.Node}}" video_processing_nginx)
 
+	docker-machine rm node-i
 104.236.44.24
 

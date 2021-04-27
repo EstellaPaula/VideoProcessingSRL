@@ -270,20 +270,18 @@ def unregister_worker(current_user):
 @app.route("/api/register/boss", methods=["POST"])
 @token_required
 def register_as_boss(current_user):
-    # Functon that registeres user session as boss
+    # Functon that registeres users session as boss
     data = request.get_json(silent=True)
-    if not data or not data['ip_address'] or not data['port_msg'] or not data['port_file']:
+    if not data or not data['ip_address']:
         # Error handling
         return jsonify("Invalid request."), 400
     
     user = user_schema.dump(current_user)
     username = user['username']
     ip_address = data['ip_address']
-    port_msg = data['port_msg']
-    port_file = data['port_file']
 
     new_boss = Boss(username=username, ip_address=ip_address,\
-                    port_msg=port_msg, port_file=port_file, idle=True)
+                    port_msg=5008, port_file=5009, idle=True)
     try:
         db.session.add(new_boss)  
         db.session.commit()
@@ -292,8 +290,7 @@ def register_as_boss(current_user):
         return jsonify("Boss already in dabase"), 409
     
     query = db.session.query(Boss).filter(Boss.username == username)\
-                                .filter(Boss.ip_address == ip_address)\
-                                .filter(Boss.port_msg == port_msg).first()
+                                .filter(Boss.ip_address == ip_address).first()
     boss = boss_schema.dump(query)
 
     # Return success message
@@ -532,7 +529,7 @@ def worker_update_pp_av1(current_user):
 def worker_submit_job_result():
     #Function that inserts job result into db for analytics
     data = request.get_json(silent=True)
-    if not data or not data['time_io']:
+    if not data or not data['time_io'] or not data['codec'] or not data['time_transcoding'] or not data['time_io']:
         # Error handling
         return jsonify("Invalid request."), 400
 
@@ -615,7 +612,7 @@ def worker_request_boss(current_user):
     worker = worker_schema.dump(query)
 
     if worker == None:
-            return jsonify("Worker session doesn't exist."), 401
+        return jsonify("Worker session doesn't exist."), 401
 
     if worker['boss_id'] == -2147483647:
         return jsonify("Worker session should be IDLE."), 404
@@ -624,7 +621,7 @@ def worker_request_boss(current_user):
     exists = bool(query_boss)
 
     if exists is False:
-        return jsonify("Worker session is orfan."), 404
+        return jsonify("Worker session is orfan.Boss session has already exited the swarm."), 404
     
     boss = boss_schema.dump(query_boss)
 
@@ -633,9 +630,9 @@ def worker_request_boss(current_user):
 @app.route("/api/boss/job", methods=["GET"])
 @token_required
 def boss_submit_job(current_user):
-    # Function that sets first DEFAULT_VALUE workers that are in IDLE into Working
-    # and returns them to the boss session thta reuested worker ONLY if the number
-    # of worker sessions assigned to user >= number of boss sessions of user
+    # Function that sets first DEFAULT_VALUE_NR_WORKERS workers that are in IDLE into Working
+    # and returns them to the boss session that requested workers ONLY if the number
+    # of worker sessions assigned to boss peer user >= number of boss sessions of user
 
     data = request.get_json(silent=True)
     if not data or not data['id']:
@@ -650,17 +647,17 @@ def boss_submit_job(current_user):
     # get worker sessions
     nrWorkerSessions = db.session.query(Worker.username).filter(Worker.username == username).count()
     if nrBossSessions > nrWorkerSessions:
-        return jsonify("Worker sessions less than boss sessions for user "), 401
+        return jsonify("For current peer worker sessions less than boss session. Try volunteering more bfore requesting."), 429
 
    
     boss = db.session.query(Boss).filter(Boss.id == id).first()
     #update boss
     try:
         if boss == None:
-            return jsonify("Boss session doesn't exist."), 401
+            return jsonify("Boss session doesn't exist. Try recovering session or a different id."), 401
 
         if boss.idle == False:
-            return jsonify("Boss session hasn't finished previous job."), 401
+            return jsonify("Boss session hasn't finished previous job.Try updating status to IDLE then retry."), 429
 
         boss.idle = False
         boss.timestamp = db.func.current_timestamp()
@@ -671,7 +668,7 @@ def boss_submit_job(current_user):
 
     # Error fetching list of workers
     try:
-        list_workers = db.session.query(Worker).filter(Worker.idle == True).limit(NR_WORKERS)
+        list_workers = db.session.query(Worker).filter(Worker.idle == True).filter(Worker.username != username).limit(NR_WORKERS)
     except SQLAlchemyError as e:
         db.session.rollback()
         return jsonify("Server error. Error fetching workers list"), 500
@@ -700,25 +697,25 @@ def boss_submit_job(current_user):
             db.session.commit()
         except IntegrityError as e:
             db.session.rollback()
-            return jsonify("Error while modifying worker status in database."), 409
+            return jsonify("Error when modifying worker status in database."), 409
 
-    # Return list of countries
+    # Return list of workers
     return jsonify(result), 200
 
 
 @app.route("/api/cleanup", methods=["DELETE"])
 def server_cleanup():
-    #Function that cleanes database from hange up sessions (boss or workers)
+    #Function that cleans database from hanged up sessions (boss or workers)
     time = request.args.get('time', default=None, type = toDate)
     result_bosses = []
     result_workers = []
 
     try:
         removed_bosses = db.session.query(Boss)\
-                     .filter(Boss.timestamp >= time).filter(Boss.idle == False).all()
+                     .filter(Boss.timestamp <= time).filter(Boss.idle == False).all()
         result_bosses = bosses_schema.dump(removed_bosses)
         removed_workers = db.session.query(Worker)\
-                     .filter(Worker.timestamp >= time).filter(Worker.idle == False).all()
+                     .filter(Worker.timestamp <= time).filter(Worker.idle == False).all()
         result_workers = workers_schema.dump(removed_workers)
 
         for boss in removed_bosses:
