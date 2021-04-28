@@ -11,7 +11,7 @@
    36  docker-machine ssh node-1 -- docker swarm init --advertise-addr $(docker-machine ip node-1)
    42  for i in 2 3 4; do   docker-machine ssh node-$i     -- docker swarm join --token SWMTKN-1-3jpq6i3b0zjf22ws6zztakfc5cr01079zw87kucmkriei9czbz-5i5ds7s4wtf494x9ocnttnwkh 104.236.45.200:2377; done
    43  eval $(docker-machine env node-1)
-   44   docker stack deploy -c stack.yml video_processing
+   44  docker stack deploy -c stack.yml video_processing
    46  docker stack ps -f "desired-state=running" video_processing
    49  eval $(docker-machine env node-1)
    50  docker-machine ip $(docker service ps -f "desired-state=running" --format "{{.Node}}" video_processing_nginx)
