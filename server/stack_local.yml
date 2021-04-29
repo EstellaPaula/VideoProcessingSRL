@@ -1,0 +1,81 @@
+version: "3.8"
+
+services: 
+  rest_api:
+    image: estellapaula/video_processing:first_version
+    ports:
+      - 5000:5000
+    expose:
+      - 5000
+    environment:
+      FLASK_APP: project/__init__.py
+      FLASK_ENV: development
+      DATABASE_URL: postgresql://admin:secret@db:5432/postgres
+      SQL_HOST: db
+      SQL_PORT: 5432
+      DATABASE: postgres
+    networks:
+      - server_network
+    depends_on:
+      - db
+    restart: always
+
+  scraper_daemon:
+    image: estellapaula/video_processing:first_version_scraper
+    networks:
+      - server_network
+    restart: always
+
+  db:
+    image: postgres:12.2
+    hostname: db
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: secret
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - server_network
+      - front_end_network
+    ports:
+      - 5432:5432
+    expose:
+      -  5432
+    restart: always
+
+  grafana:
+    image: grafana/grafana:latest
+    hostname: grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=secret
+    ports:
+      - 3000:3000
+    networks:
+      - front_end_network
+    volumes:
+      - grafana-log:/var/log/grafana
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini
+      - ./grafana/provisioning/:/etc/grafana/provisioning/
+      - ./grafana/dashboards/:/etc/grafana/dashboards/
+    restart: always
+
+  visualizer:
+    image: dockersamples/visualizer:latest
+    ports:
+      - 5009:8080
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    networks:
+      - server_network
+
+volumes:
+  log-data:
+  db-data:
+    driver: local
+  grafana-log:
+
+networks:
+  server_network:
+  front_end_network:

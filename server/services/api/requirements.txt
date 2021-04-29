@@ -1,0 +1,10 @@
+Flask
+marshmallow
+flask_marshmallow
+Flask-sqlalchemy
+Flask
+datetime 
+uuid
+PyJWT==1.4.0
+psycopg2
+marshmallow-sqlalchemy
