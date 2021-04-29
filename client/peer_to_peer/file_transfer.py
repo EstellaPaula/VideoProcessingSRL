@@ -3,7 +3,7 @@ import socket, select
 from peer_to_peer.message import Messenger, pad_string, unpad_string
 from peer_to_peer.logger import Log
 
-# import progressbar
+import progressbar
 import os, sys
 import hashlib
 
@@ -155,28 +155,28 @@ class FileTransfer():
         self.log.write("[RECEIVE FILE] File hash received successfully!")
         with open(file_path + file_name, "wb") as afile:
             # set widgets for progress bar
-            # widgets=[
-            # ' [', progressbar.FormatLabel("Rcv_file " + file_name), '] ',
-            # progressbar.Bar(),
-            # progressbar.widgets.AnimatedMarker(),
-            # ' (', progressbar.AdaptiveETA(), ') ',
-            # ' (', progressbar.AdaptiveTransferSpeed(), ') ',
-            # ]
-            # with progressbar.ProgressBar(max_value = file_size, widgets=widgets) as bar:
-            received = 0
-            while received < file_size:
-                # try to receive data
-                try:
-                    data = self.file_socket.recv(buffer_size)
-                except socket.error as error_msg:
-                    self.log.write("[FILE_RCV] Error receiving data: " + error_msg)
-                    return self.RECEIVE_ERROR, "file socket error"
-                if data:
-                    afile.write(data)
-                    received += len(data)
-                    # bar.update(received)
-                else:
-                    break
+            widgets=[
+            ' [', progressbar.FormatLabel("Rcv_file " + file_name), '] ',
+            progressbar.Bar(),
+            progressbar.widgets.AnimatedMarker(),
+            ' (', progressbar.AdaptiveETA(), ') ',
+            ' (', progressbar.AdaptiveTransferSpeed(), ') ',
+            ]
+            with progressbar.ProgressBar(max_value = file_size, widgets=widgets) as bar:
+                received = 0
+                while received < file_size:
+                    # try to receive data
+                    try:
+                        data = self.file_socket.recv(buffer_size)
+                    except socket.error as error_msg:
+                        self.log.write("[FILE_RCV] Error receiving data: " + error_msg)
+                        return self.RECEIVE_ERROR, "file socket error"
+                    if data:
+                        afile.write(data)
+                        received += len(data)
+                        # bar.update(received)
+                    else:
+                        break
         self.log.write("[RECEIVE FILE] Received file!")
         # check received file hash
         self.log.write("[RECEIVE FILE] Computing hash!")
