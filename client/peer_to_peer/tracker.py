@@ -280,6 +280,26 @@ class Tracker():
             print("Worker finish HTTP error:", r.status_code)
             return r.status_code, r.json()
     
+    def submit_job_result(self, worker_id, codec, time_io, time_transcoding, speed, total_job_count, job_count, token):
+        """
+            Required fields: worker_id, codec, time_io, time_transcoding, speed, total_job_count, job_count, token
+            Optional fields: none
+            Returns: nothing
+
+            Submits job result to tracker
+        """
+        
+        url = self.home + "api/worker/job"
+        r = requests.put(url, headers={"Content-Type":"application/json", "x-access-tokens":token},
+         json={"id":worker_id, "codec":codec, "time_io":time_io, "time_transcoding":time_transcoding,
+         "estimate_power":speed, "nr_chunks_total":total_job_count, "nr_chunks_processed":job_count})
+        if r.status_code == 200:
+            return r.status_code, r.json()
+        else:
+            print("Worker job result submit HTTP error:", r.status_code)
+            return r.status_code, r.json()
+
+    
     def get_worker_owner(self, worker_id, token):
         """
             Required fields: worker_id, token
