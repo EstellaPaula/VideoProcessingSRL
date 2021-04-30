@@ -1,6 +1,7 @@
 import socket, select
 import threading, queue
 
+from peer_to_peer.tracker import Tracker
 from peer_to_peer import connection
 from peer_to_peer.message import Messenger, pad_string, unpad_string
 from peer_to_peer.file_transfer import FileTransfer
@@ -22,6 +23,15 @@ class Boss():
 
         Creates a boss, prepare the job files and create a job thread safe queue
     """
+    # tracker info
+    tracker = None
+
+    # session info
+    username = None
+    password = None
+    boss_id = None
+    token = None
+
     # machine info 
     host = "127.0.0.1"
     workers = []
@@ -43,20 +53,31 @@ class Boss():
     file_sockets = []
     logs = []
     log = None
-    
-    # stats info
-    
-    def __init__(self,name, h, w, in_fp, out_fp, codec="copy", s_c = 10,
-    snd_fp = "/tmp/boss/files_to_send/", rcv_fp = "/tmp/boss/received_files/", log_fp = "logs/boss/"):
+
+
+    def __init__(self,username, password, h, in_fp, out_fp, tracker_host, tracker_port,
+    codec="copy", s_c = 10, snd_fp = "/tmp/boss/files_to_send/",
+    rcv_fp = "/tmp/boss/received_files/", log_fp = "logs/boss/"):
+        
         # init temp and log paths if they don't exist
         Path(log_fp).mkdir(parents=True, exist_ok=True)
         Path(snd_fp).mkdir(parents=True, exist_ok=True)
         Path(rcv_fp).mkdir(parents=True, exist_ok=True)
 
-        # init machine metadata
+        # init tracker
+        self.username = username
+        self.password = password
         self.host = h
-        self.workers = w
+        self.tracker = Tracker(tracker_host, tracker_port)
+        self.tracker.register_user(username, password)
+        ret_code, self.token = self.tracker.log_in(username, password)
+        ret_code, self.boss_id = self.tracker.register_boss_session(self.host, self.token)
+
+        # init workers
+        ret_code, self.workers = self.tracker.get_workers(self.boss_id, self.token)
         self.worker_count = len(self.workers)
+
+        print("DATA", self.host, self.boss_id, self.workers, flush=True)
         
         # init i/o info
         self.in_file_path = in_fp
@@ -71,7 +92,6 @@ class Boss():
         # init demuxer and get job files/audio
         demuxer = Demuxer()
         ok, job_files = demuxer.split_video(in_file = self.in_file_path, out_path = self.job_send_path, segment_count = self.segment_count, segment_log=self.job_send_path + "job_files.txt")
-        # ok, self.audio_rip = demuxer.rip_audio(in_file = self.in_file_path, out_path = rcv_fp)
         
         # add job files to thread safe queue
         for jf in job_files:
@@ -85,10 +105,11 @@ class Boss():
                 afile.write("""file '%s'\n""" % jf_name)
         
         # init logs
-        self.log = Log("localhost", 0, 0, log_fp + name + ".txt")
+        self.log = Log("localhost", 0, 0, log_fp + username + ".txt")
         for i in range(self.worker_count):
+            print("BAA", self.workers[i], flush=True)
             w_host, w_msg_port, w_file_port = self.workers[i]
-            log = Log(w_host, w_msg_port, w_file_port, log_fp + name + str(i) + ".txt")
+            log = Log(w_host, w_msg_port, w_file_port, log_fp + username + str(i) + ".txt")
             self.logs.append(log)
         
 
@@ -223,6 +244,9 @@ class Boss():
 
             Close sockets and delete temporary files
         """
+        # notify tracker that boss is finished
+        self.tracker.boss_finish(self.boss_id, self.token)
+
         # close channel sockets
         for s in self.msg_sockets:
             s.close()
@@ -241,19 +265,23 @@ class Boss():
             os.remove(f)
 
 def main():
-    # machine infos
-    host = "127.0.0.1"
-    workers = [["nehalem-wn15", 50001, 50002], ["nehalem-wn16", 50001, 50002], ["nehalem-wn17", 50001, 50002], ["nehalem-wn18", 50001, 50002]]
-    name = sys.argv[1]
+    # client info
+    username = sys.argv[1]
+    password = sys.argv[2]
+    tracker_host = "localhost"
+    tracker_port = 5000
 
+    # machine infos
+    host = sys.argv[3]
+    
     # files
     size = sys.argv[4]
     in_file = "tests/input/x264_{size}.mkv".format(size=size)
     out_file = "tests/output/out_{size}.mkv".format(size=size)
 
     # job infos
-    codec = sys.argv[2]
-    segment_count = int(sys.argv[3])
+    codec = sys.argv[5]
+    segment_count = int(sys.argv[6])
     
 
     # where to store temporary files
@@ -266,9 +294,9 @@ def main():
         boss_rcv_fp = ".tmp/boss/received_files/"
 
     # init boss
-    boss = Boss(name, host, workers, in_fp = in_file, out_fp= out_file,
-    codec=codec, s_c = segment_count, snd_fp= boss_snd_fp, rcv_fp=boss_rcv_fp,
-    log_fp= log_file_path)
+    boss = Boss(username,password, host, in_fp = in_file, out_fp= out_file,
+    tracker_host = tracker_host, tracker_port = tracker_port,codec=codec,
+    s_c = segment_count, snd_fp= boss_snd_fp, rcv_fp=boss_rcv_fp, log_fp= log_file_path)
 
     # start work
     processing_duration= boss.run()
@@ -283,10 +311,10 @@ def main():
 
     # create data folder if it doesn't exist
     data_folder = "collected_data/{codec}/{size}/{worker_count}/{segment_count}/".format(
-        codec=codec, size=size, worker_count=len(workers), segment_count=segment_count)
+        codec=codec, size=size, worker_count=boss.worker_count, segment_count=segment_count)
     Path(data_folder).mkdir(parents=True, exist_ok=True)
     # write to data file in append mode
-    data_file = "{data_folder}{boss_name}.txt".format(data_folder=data_folder, boss_name=name) 
+    data_file = "{data_folder}{boss_name}.txt".format(data_folder=data_folder, boss_name=username) 
     with open(data_file, "a") as afile:
         afile.write("{processing_duration:.4f} {speed:.4f}\n".format(processing_duration = processing_duration, speed=speed))
     

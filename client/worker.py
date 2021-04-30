@@ -1,6 +1,7 @@
 import socket, select
 import threading, queue
 
+from peer_to_peer.tracker import Tracker
 from peer_to_peer import connection
 from peer_to_peer.message import Messenger, pad_string, unpad_string
 from peer_to_peer.file_transfer import FileTransfer
@@ -24,6 +25,13 @@ class Worker():
 
         Creates a worker and binds its sockets
     """
+    # session info
+    username = None
+    password = None
+    tracker = None
+    token = None
+    worker_id = None
+
     # machine info
     host = "0.0.0.0"
     boss_host = "0.0.0.0"
@@ -48,20 +56,30 @@ class Worker():
     ERR = [0, 0, 0, 0, 0] 
     
 
-    def __init__(self, name, b_h, worker, snd_fp = "/tmp/worker/files_to_send/",
+    def __init__(self, username, password, tracker_host, tracker_port, worker, snd_fp = "/tmp/worker/files_to_send/",
      rcv_fp = "/tmp/worker/received_files/", log_file_path = "logs/worker/"):
         # init temp paths if they don't exist
         Path(log_file_path).mkdir(parents=True, exist_ok=True)
         Path(snd_fp).mkdir(parents=True, exist_ok=True)
         Path(rcv_fp).mkdir(parents=True, exist_ok=True)
 
-        # init machine and connection info
+        # init session
+        self.username = username
+        self.password = password
         h, msg_p, file_p = worker
         self.host = h
-        self.boss_host = b_h
         self.msg_port = msg_p
         self.file_port = file_p
-        self.log_file_path = log_file_path + name + ".txt"
+        self.tracker = Tracker(tracker_host, tracker_port)
+        self.tracker.register_user(username, password)
+        ret_code, self.token = self.tracker.log_in(username, password)
+        speeds = {"x264":0, "x265":0, "vp9":0, "av1":0}
+        ret_code, self.worker_id = self.tracker.register_worker_session(self.host, self.msg_port, self.file_port, speeds, self.token)
+
+        # init machine and connection info
+        self.msg_port = msg_p
+        self.file_port = file_p
+        self.log_file_path = log_file_path + username + ".txt"
         self.log = Log(h, msg_p, file_p, self.log_file_path)
         
         # init temp info
@@ -91,9 +109,10 @@ class Worker():
         self.msg_socket.listen(1)
         conn_socket, (conn_host, conn_port) = self.msg_socket.accept()
         
-        # TODO:check if connection came from boss
+        ret_code, self.boss_host = self.tracker.get_worker_owner(self.worker_id, self.token)
+        # check if connection came from boss
         # if conn_host != self.boss_host:
-        #     self.log.write("WARNING! received message from unexpected host! This incident will be reported!")
+        #     self.log.write("WARNING! Rightful owner is {boss}. Connection came from {addr}".format(boss=self.boss_host, addr = conn_host))
         #     conn_socket.close()
         #     return False
         
@@ -114,9 +133,10 @@ class Worker():
 
         # TODO: check who initiated connection
         # if conn_host != self.boss_host:
-        #     self.log.write("WARNING! received message from unexpected host! This incident will be reported!")
+        #     self.log.write("WARNING! Rightful owner is {boss}. Connection came from {addr}".format(boss=self.boss_host, addr = conn_host))
         #     conn_socket.close()
         #     return False
+
         self.file_socket = conn_socket
 
         # update info
@@ -139,7 +159,8 @@ class Worker():
             Keep track of job count, time spend with network/processing
             and temporary files. If anything fails, end the function
         """
-
+        # init res
+        job_count, network_duration, processing_duration, mean_transcoding_speed, std_transcoding_speed = [0] * 5
         # init connection
         connection_success = self.connect_for_work()
         
@@ -264,6 +285,10 @@ class Worker():
             self.log.write("Average transcoding speed: {speed:.3f}x".format(speed= mean_transcoding_speed))
             self.log.write("Transcoding std error: {speed:.3f}x".format(speed=std_transcoding_speed))
             
+            # send worker speed in tracker
+            speeds = {codec:mean_transcoding_speed}
+            self.tracker.update_speed(self.worker_id, speeds, self.token)
+            
         return job_count, network_duration, processing_duration, mean_transcoding_speed, std_transcoding_speed     
 
     def close(self):
@@ -274,6 +299,9 @@ class Worker():
 
             Close sockets and delete temporary files
         """
+
+        # notify tracker that worker stopped
+        self.tracker.worker_finish(self.worker_id, self.token)
 
         # close channel sockets
         self.msg_socket.close()
@@ -289,9 +317,12 @@ class Worker():
         
 def main():
     # machine infos
-    host = "127.0.0.1"
-    name = sys.argv[1]
-    worker = ["127.0.0.1", int(sys.argv[2]), int(sys.argv[3])]
+    username = sys.argv[1]
+    password = sys.argv[2]
+    tracker_host = "localhost"
+    tracker_port = 5000
+
+    worker = [sys.argv[3], int(sys.argv[4]), int(sys.argv[5])]
 
     # where to store temporary files
     use_tmp_fs = False
@@ -303,7 +334,7 @@ def main():
         worker_rcv_fp = ".tmp/worker/received_files/"
 
     # init worker
-    worker = Worker(name, host, worker, snd_fp=worker_snd_fp, rcv_fp=worker_rcv_fp,
+    worker = Worker(username, password, tracker_host, tracker_port, worker, snd_fp=worker_snd_fp, rcv_fp=worker_rcv_fp,
     log_file_path = log_file_path)
     # start work
     [job_count, network_duration, transcoding_duration,
@@ -312,17 +343,17 @@ def main():
     worker.close()
 
     # collected data info
-    codec = sys.argv[4]
-    size = sys.argv[5]
-    worker_count = int(sys.argv[6])
-    segment_count = int(sys.argv[7])
+    codec = sys.argv[6]
+    size = sys.argv[7]
+    worker_count = int(sys.argv[8])
+    segment_count = int(sys.argv[9])
 
     # create data folder if it doesn't exist
     data_folder = "collected_data/{codec}/{size}/{worker_count}/{segment_count}/".format(
         codec=codec, size=size, worker_count=worker_count, segment_count=segment_count)
     Path(data_folder).mkdir(parents=True, exist_ok=True)
     # write to data file in append mode
-    data_file = "{data_folder}{worker_name}.txt".format(data_folder=data_folder, worker_name=name) 
+    data_file = "{data_folder}{worker_name}.txt".format(data_folder=data_folder, worker_name=username) 
     with open(data_file, "a") as afile:
         afile.write("{job_count} {network_duration:.4f} {transcoding_duration:.4f} {mean_transcoding_speed:.4f} {std_transcoding_speed:.4f}\n".format(
             job_count = job_count, network_duration = network_duration,

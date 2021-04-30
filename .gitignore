@@ -7,5 +7,4 @@ client/.tmp
 # exclude collected data
 client/collected_data
 # exclude scripts
-client/*.sh
-client/*.sh.*
+client/testing_scripts

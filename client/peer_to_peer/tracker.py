@@ -100,7 +100,7 @@ class Tracker():
         url = self.home + "api/worker"
         r = requests.get(url)
         if r.status_code == 200:
-            return r.status_code, r.json()
+            return r.status_code, workers
         else:
             print("Get worker list HTTP error:", r.status_code)
             return r.status_code, r.json()
@@ -236,7 +236,7 @@ class Tracker():
         r = requests.get(url, headers={"Content-Type":"application/json", "x-access-tokens":token},
          json={"id":boss_id})
         if r.status_code == 200:
-            workers = r.json()
+            workers = [[worker["ip_address"], worker["port_msg"], worker["port_file"]] for worker in r.json()]
             return r.status_code, workers
         else:
             print("Get workers HTTP error:", r.status_code)
