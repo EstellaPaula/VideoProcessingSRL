@@ -1,0 +1,120 @@
+
+{{host}} - http://server_ip:5000/
+
+First you must create a user with:
+
+POST - {{host}}api/register
+body: {"username":"sam","password":"sam"}
+
+Then obtain a token. JWT token must be included in the authorization header of all following requests.
+Obtain token by:
+
+GET - {{host}}api/login
+header: Basic auth + username + password
+body: {}
+
+All methods from now on must have JWT in header "x-access-tokens" and "application/json" in header 
+headers:
+"Content-Type": application/json
+"x-access-tokens": JWT
+
+Receive list of bosses. Will receive id of boss required for further operations:
+GET - {{host}}api/boss/
+
+Register session as boss:
+headers: -\-
+POST - {{host}}api/register/boss
+body:
+{
+    "ip_address": "0.0.0.5",
+    "port_msg": 1777,
+    "port_file": 4555
+}
+
+Register session as worker. If no computing metrics have been assigned leave as "0":
+headers: -\-
+POST - {{host}}api/register/worker
+body:
+{
+    "ip_address": "1.0.0.14",
+    "port_msg": 5900,
+    "port_file": 4553,
+    "pp_x265": 12.2,
+    "pp_vp9": 13.3,
+    "pp_av1": 14.4
+}
+
+To update WORKER codec metrics use update routes. Sen body with id of worker and codec to be updated.
+Update HEVC
+headers: -\-
+PUT - {{host}}/api/worker/pp_x265
+body:
+{
+    "id": 3,
+    "pp_x265": 2
+}
+
+Update VP9
+headers: -\-
+PUT - {{host}}/api/worker/pp_vp9
+body:
+{
+    "id": 3,
+    "pp_vp9": 2
+}
+
+Update AV1
+headers: -\-
+PUT - {{host}}/api/worker/pp_av1
+body:
+{
+    "id": 3,
+    "pp_av1": 2
+}
+
+As boss request lists of available workers. Must provide boss session id in message boy. The workers provided will have to be owned by a different peer:
+headers: -\-
+GET - {{host}}api/boss/job
+body:
+{
+    "id": 1
+}
+
+As worker to acccept boss TCP connection verify Boss IP:
+headers: -\-
+GET - {{host}}api/worker/owner
+body:
+{
+    "id": 3
+}
+
+Update status for boss/worker after transcoding:
+Update boss
+headers: -\-
+PUT - {{host}}api/boss/status
+body:
+{
+    "id": 2
+}
+
+Update worker
+headers: -\-
+PUT - {{host}}api/worker/status
+body:
+{
+    "id": 2
+}
+
+A worker must also submit a job result. 
+headers: -\-
+POST - {{host}}api/worker/job
+body:
+{
+    "id": 2
+    "codec": "x256",
+    "time_io": 222.56,
+    "time_transcoding": 369.2,
+    "estimated_power": 45.6,
+    "nr_chunks_total": 20,
+    "nr_chunks_proccessed": 3
+}
