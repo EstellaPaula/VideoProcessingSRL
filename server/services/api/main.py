@@ -83,6 +83,7 @@ class Worker(db.Model):
     idle = db.Column(db.Boolean)
     boss_id = db.Column(db.Integer)
     pp_x265 = db.Column(db.Float)
+    pp_x264 = db.Column(db.Float)
     pp_vp9 = db.Column(db.Float)
     pp_av1 = db.Column(db.Float)
     timestamp = db.Column(db.TIMESTAMP, server_default=db.func.current_timestamp())
@@ -142,6 +143,7 @@ class WorkerSchema(ma.Schema):
     idle = fields.Boolean(required=True)
     boss_id = fields.Integer(required=True)
     pp_x265 = fields.Float(required=True)
+    pp_x264 = fields.Float(required=True)
     pp_vp9 = fields.Float(required=True)
     pp_av1 = fields.Float(required=True)
     timestamp = fields.DateTime(required=False, format='%Y-%m-%d')
@@ -173,7 +175,7 @@ def signup_user():
         return jsonify("Invalid request."), 400
 
     hashed_password = generate_password_hash(data['password'], method='sha256')
-    id_public = random.randint(1, 5050)
+    id_public = random.randint(1, 50050)
     
     new_user = User(public_id=id_public, username=data['username'], password=hashed_password) 
     
@@ -313,10 +315,13 @@ def register_as_worker(current_user):
     p1 = data['pp_x265']
     p2 = data['pp_vp9']
     p3 = data['pp_av1']
+    p4 = data['pp_x264']
+    
 
     new_worker = Worker(username=username, ip_address=ip_address,\
                         port_msg=port_msg, port_file=port_file, idle=True,\
-                        boss_id=-2147483647, pp_x265=p1, pp_vp9=p2, pp_av1=p3) 
+                        boss_id=-2147483647, pp_x265=p1, pp_vp9=p2, pp_av1=p3,\
+                        pp_x264=p4) 
 
     try:
         db.session.add(new_worker)  
@@ -478,6 +483,29 @@ def worker_update_pp_x265(current_user):
 
     # Return success message
     return jsonify("Worker pp_x265 updated."), 200
+
+@app.route("/api/worker/pp_x264", methods=["PUT"])
+@token_required
+def worker_update_pp_x264(current_user):
+    #Function that updates worker pp_x264 parameter
+    data = request.get_json(silent=True)
+    if not data or not data['id'] or not data['pp_x264']:
+        # Error handling
+        return jsonify("Invalid request."), 400
+    
+    id = data['id']
+    pp_x264 = data['pp_x264']
+    worker = db.session.query(Worker).filter(Worker.id == id).first()
+
+    try:
+        worker.pp_x264 = pp_x264
+        db.session.commit()
+    except IntegrityError as e:
+        db.session.rollback()
+        return jsonify("Error while modifying worker pp_x264 in database."), 409
+
+    # Return success message
+    return jsonify("Worker pp_x264 updated."), 200
 
 @app.route("/api/worker/pp_vp9", methods=["PUT"])
 @token_required
@@ -668,7 +696,7 @@ def boss_submit_job(current_user):
 
     # Error fetching list of workers
     try:
-        list_workers = db.session.query(Worker).filter(Worker.idle == True).filter(Worker.username != username).limit(NR_WORKERS)
+        list_workers = db.session.query(Worker).filter(Worker.idle == True).limit(NR_WORKERS)
     except SQLAlchemyError as e:
         db.session.rollback()
         return jsonify("Server error. Error fetching workers list"), 500
@@ -733,6 +761,67 @@ def server_cleanup():
             return jsonify("Error fetching sessions list"), 500
 
     return jsonify({'removed_bosses' : result_bosses, 'removed_workers': result_workers}), 200
+
+@app.route("/api/cleanup/all", methods=["DELETE"])
+def server_cleanup_all():
+    try:
+        db.session.query(User).delete()
+        db.session.query(Boss).delete()
+        db.session.query(Worker).delete()
+        db.session.query(JobEvent).delete()
+        db.session.query(JobResult).delete()
+        db.session.commit()
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return jsonify("Error cleaning database."), 500
+    
+    return jsonify("Successful clean up of database."), 200
+
+@app.route("/api/cleanup/users", methods=["DELETE"])
+def server_cleanup_users():
+    try:
+        db.session.query(User).delete()
+        db.session.commit()
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return jsonify("Error cleaning user table from database."), 500
+
+    return jsonify("Successful clean up of user table."), 200
+
+@app.route("/api/cleanup/workers", methods=["DELETE"])
+def server_cleanup_workers():
+    try:
+        db.session.query(Worker).delete()
+        db.session.commit()
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return jsonify("Error cleaning worker table from database."), 500
+    
+    return jsonify("Successful clean up of worker table."), 200
+
+@app.route("/api/cleanup/bosses", methods=["DELETE"])
+def server_cleanup_bosses():
+    try:
+        db.session.query(Boss).delete()
+        db.session.commit()
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return jsonify("Error cleaning boss table from database."), 500
+    
+    return jsonify("Successful clean up of boss table."), 200
+
+@app.route("/api/cleanup/logs", methods=["DELETE"])
+def server_cleanup_logs():
+    try:
+        db.session.query(JobEvent).delete()
+        db.session.query(JobResult).delete()
+        db.session.commit()
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return jsonify("Error cleaning job event and job result table from database."), 500
+
+    return jsonify("Successful clean up of job event and job result tables."), 200
+
 
 
 #### Create db ####

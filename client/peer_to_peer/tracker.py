@@ -138,7 +138,7 @@ class Tracker():
         url = self.home + "api/register/worker"
         r = requests.post(url, headers={"Content-Type":"application/json", "x-access-tokens":token},
          json={"ip_address":hostname, "port_msg":msg_port, "port_file":file_port, "pp_x265":speeds["x265"],
-         "pp_vp9":speeds["vp9"], "pp_av1":speeds["av1"]})
+          "pp_x264":speeds["x264"], "pp_vp9":speeds["vp9"], "pp_av1":speeds["av1"]})
         if r.status_code == 200:
             worker_id = r.json()["id"]
             return r.status_code, worker_id
@@ -163,6 +163,25 @@ class Tracker():
             return r.status_code, r.json()
         else:
             print("Worker x265 speed update HTTP error:", r.status_code)
+            return r.status_code, r.json()
+
+    def update_x264_speed(self, worker_id, new_speed, token):
+        """
+            Required fields: worker_id, new_speed, token
+            Optional fields: none
+            Returns: nothing or error_code
+
+            Updates x264 speed
+        """
+
+        print("\nUpdate x264 speed", flush=True)
+        url = self.home + "api/worker/pp_x264"
+        r = requests.put(url, headers={"Content-Type":"application/json", "x-access-tokens":token},
+         json={"id":worker_id, "pp_x264":new_speed})
+        if r.status_code == 200:
+            return r.status_code, r.json()
+        else:
+            print("Worker x264 speed update HTTP error:", r.status_code)
             return r.status_code, r.json()
     
     def update_vp9_speed(self, worker_id, new_speed, token):
@@ -216,6 +235,8 @@ class Tracker():
             new_speed = speeds[codec]
             if codec == "x265":
                 self.update_x265_speed(worker_id, new_speed, token)
+            elif codec == "x264":
+                self.update_x264_speed(worker_id, new_speed, token)
             elif codec == "vp9":
                 self.update_vp9_speed(worker_id, new_speed, token)
             else:
@@ -299,7 +320,6 @@ class Tracker():
             print("Worker job result submit HTTP error:", r.status_code)
             return r.status_code, r.json()
 
-    
     def get_worker_owner(self, worker_id, token):
         """
             Required fields: worker_id, token
@@ -317,10 +337,96 @@ class Tracker():
             return r.status_code, r.json()
         else:
             print("Worker owner HTTP error:", r.status_code)
+            print(r.json())
             return r.status_code, ""
 
+    def delete_all(self):
+        """
+            Required fields: none
+            Optional fields: none
+            Returns: request code, request output
 
+            Deletes all entries from database
+        """
+
+        print("\nDelete all entries from database", flush=True)
+        url = self.home + "api/cleanup/all"
+        r = requests.delete(url)
+        if r.status_code == 200:
+            return r.status_code, r.json()
+        else:
+            print("Delete all entries from database HTTP error:", r.status_code)
+            return r.status_code, r.json()
+
+    def delete_users(self):
+        """
+            Required fields: none
+            Optional fields: none
+            Returns: request code, request output
+
+            Deletes all entries from users table
+        """
+
+        print("\nDelete users", flush=True)
+        url = self.home + "api/cleanup/users"
+        r = requests.delete(url)
+        if r.status_code == 200:
+            return r.status_code, r.json()
+        else:
+            print("Delete users HTTP error:", r.status_code)
+            return r.status_code, r.json()
+
+    def delete_workers(self):
+        """
+            Required fields: none
+            Optional fields: none
+            Returns: request code, request output
+
+            Deletes all entries from workers table
+        """
+
+        print("\nDelete workers", flush=True)
+        url = self.home + "api/cleanup/workers"
+        r = requests.delete(url)
+        if r.status_code == 200:
+            return r.status_code, r.json()
+        else:
+            print("Delete workers HTTP error:", r.status_code)
+            return r.status_code, r.json()
+
+    def delete_bossess(self):
+        """
+            Required fields: none
+            Optional fields: none
+            Returns: request code, request output
+
+            Deletes all entries from bosses table
+        """
+
+        print("\nDelete bosses", flush=True)
+        url = self.home + "api/cleanup/bosses"
+        r = requests.delete(url)
+        if r.status_code == 200:
+            return r.status_code, r.json()
+        else:
+            print("Delete bosses HTTP error:", r.status_code)
+            return r.status_code, r.json()
+
+    def delete_logs(self):
+        """
+            Required fields: none
+            Optional fields: none
+            Returns: request code, request output
+
+            Deletes all entries from logs table
+        """
+
+        print("\nDelete logs", flush=True)
+        url = self.home + "api/cleanup/logs"
+        r = requests.delete(url)
+        if r.status_code == 200:
+            return r.status_code, r.json()
+        else:
+            print("Delete logs HTTP error:", r.status_code)
+            return r.status_code, r.json()
     
-
-    
-
