@@ -31,7 +31,13 @@ services:
     networks:
       - admin_network
     deploy:
-      replicas: 1
+      restart_policy:
+          condition: on-failure
+      placement:
+        constraints: [node.role == manager]
+    depends_on:
+      - rest_api
+    
 
   db:
     image: postgres:12.2
@@ -55,10 +61,34 @@ services:
     expose:
       -  5432
 
+  grafana:
+    image: grafana/grafana:latest
+    hostname: grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=secret
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: [node.role == manager]
+    ports:
+      - 3000:3000
+    networks:
+      - front_end_network
+    volumes:
+      - grafana-log:/var/log/grafana
+      # - ~/grafana/grafana.ini:/etc/grafana/grafana.ini
+      # - ~/grafana/provisioning/:/etc/grafana/provisioning/
+      # - ~/grafana/dashboards/:/etc/grafana/dashboards/
+    depends_on:
+      - db
+
+
   nginx:
     image: estellapaula/video_processing:first_version_nginx
     deploy:
-      replicas: 1
       restart_policy:
         condition: on-failure
       placement:
@@ -71,24 +101,41 @@ services:
       - 443:443
     depends_on:
       - rest_api
-      - grafana
     networks:
       - admin_network
 
  
-  visualizer:
-    image: dockersamples/visualizer:latest
-    ports:
-      - 5009:8080
+  agent:
+    image: portainer/agent
     volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock"
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/volumes:/var/lib/docker/volumes
+    networks:
+      - agent_network
     deploy:
+      mode: global
+      placement:
+        constraints: [node.platform.os == linux]
+
+  portainer:
+    image: portainer/portainer-ce
+    command: -H tcp://tasks.agent:9001 --tlsskipverify
+    ports:
+      - "9000:9000"
+      - "8000:8000"
+    volumes:
+      - portainer_data:/data
+    networks:
+      - agent_network
+    deploy:
+      mode: replicated
+      replicas: 1
       placement:
         constraints: [node.role == manager]
-    networks:
-      - admin_network
 
 volumes:
+  grafana-log:
+  portainer_data:
   log-data:
   db-data:
     driver: local
@@ -101,3 +148,6 @@ networks:
     driver: overlay
   front_end_network:
     driver: overlay
+  agent_network:
+    driver: overlay
+    attachable: true
